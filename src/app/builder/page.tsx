@@ -102,7 +102,6 @@ function BuilderContent() {
       "I didn't catch that clearly. Could you please repeat that or try typing your message instead?",
     language: "en",
   });
-  const [isClient, setIsClient] = useState(false);
   
   // AI 응답으로 받은 설정을 저장할 새로운 상태
   const [aiSuggestedConfig, setAiSuggestedConfig] = useState<Partial<AgentConfig>>({
@@ -251,7 +250,7 @@ ${messages.map(m => `${m.role}: ${m.content}`).join('\n')}`
     } catch (error) {
       console.error('Error calling GPT API:', error);
     }
-  }, [inputMessage, messages, aiSuggestedConfig, agentConfig.voiceConfig]);
+  }, []);
 
   // Eleven Labs 음성 대화 훅 설정
   const conversation = useConversation({
