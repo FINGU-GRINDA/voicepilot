@@ -118,7 +118,7 @@ export function Conversation() {
       await navigator.mediaDevices.getUserMedia({ audio: true });
       
       await conversation.startSession({
-        agentId: 'LdmtJp2ispR6yn5KEimY',
+        agentId: process.env.NEXT_PUBLIC_AGENT_ID,
         overrides: {
           agent: {
             prompt: {
