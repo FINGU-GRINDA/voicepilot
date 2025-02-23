@@ -375,23 +375,16 @@ ${messages.map(m => `${m.role}: ${m.content}`).join('\n')}`
     }
   };
 
-  // UI에 세션 컨트롤 버튼 추가
-  const SessionControls = () => (
-    <div className="flex gap-2 mb-4">
-      <Button
-        onClick={startConversationSession}
-        className="opacity-0 hover:opacity-100 focus:opacity-100 transition-opacity bg-transparent hover:bg-green-600 border border-green-500"
-      >
-        Start Session
-      </Button>
-      <Button
-        onClick={stopConversationSession}
-        className="opacity-0 hover:opacity-100 focus:opacity-100 transition-opacity bg-transparent hover:bg-red-600 border border-red-500"
-      >
-        End Session
-      </Button>
-    </div>
-  );
+  // 페이지 진입/이탈 시 세션 자동 관리
+  useEffect(() => {
+    // 페이지 진입 시 세션 시작
+    startConversationSession();
+
+    // 페이지 이탈 시 세션 종료
+    return () => {
+      stopConversationSession();
+    };
+  }, []); // 컴포넌트 마운트/언마운트 시에만 실행
 
   // AI 제안 설정을 표시할 새로운 컴포넌트
   const AISuggestions = () => {
@@ -432,7 +425,6 @@ ${messages.map(m => `${m.role}: ${m.content}`).join('\n')}`
     <div className="fixed inset-0 bg-gradient-to-b from-sky-900 to-black text-white">
       <div className="h-full flex">
         <div className="w-1/2 p-6 overflow-y-auto border-r border-white/10">
-          <SessionControls />
           <div className="max-w-md mx-auto space-y-8">
             <div className="flex items-center gap-2">
               <Bot className="w-6 h-6 text-sky-400" />
