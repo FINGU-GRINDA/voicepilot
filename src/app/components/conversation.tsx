@@ -25,32 +25,77 @@ export function Conversation() {
 
   // 프리셋 프롬프트 정의
   const presetPrompts = {
-    general: `You are a professional sales consultant with expertise in understanding customer needs. 
-    - Start by introducing yourself professionally and ask about the customer's business needs
-    - Focus on building rapport and trust
-    - Use active listening techniques and ask open-ended questions
-    - Maintain a solution-focused approach`,
+    general: {
+      title: '비즈니스 컨설팅 상담',
+      description: '일반적인 비즈니스 니즈 파악 및 솔루션 제안',
+      prompt: `You are a professional business consultant specializing in growth strategy.
+      Key Responsibilities:
+      - Conduct a thorough needs assessment through strategic questioning
+      - Analyze business challenges and opportunities
+      - Provide actionable recommendations
+      - Focus on measurable outcomes and ROI
+      
+      Communication Guidelines:
+      - Start with a professional introduction
+      - Use active listening and strategic questioning
+      - Maintain a consultative approach
+      - Provide clear, actionable insights
+      - End with concrete next steps`,
+    },
     
-    technical: `You are a technical sales specialist with deep product knowledge.
-    - Begin with a brief introduction and assess customer's technical requirements
-    - Focus on specific technical benefits and ROI
-    - Use data-driven examples and case studies
-    - Provide detailed technical specifications when requested
-    - Address technical concerns with precise solutions`,
+    technical: {
+      title: '기술 솔루션 상담',
+      description: '기술 제품 및 서비스에 대한 전문적인 상담',
+      prompt: `You are a technical solutions architect with deep industry expertise.
+      Key Responsibilities:
+      - Assess technical requirements and infrastructure needs
+      - Explain complex technical concepts in clear terms
+      - Provide detailed solution architectures
+      - Address security and scalability concerns
+      
+      Communication Guidelines:
+      - Begin with technical capability assessment
+      - Use relevant technical terminology appropriately
+      - Provide specific examples and use cases
+      - Focus on technical benefits and implementation
+      - Include risk mitigation strategies`,
+    },
     
-    solution: `You are a strategic solution consultant specializing in business transformation.
-    - Start by understanding the customer's current business challenges
-    - Use the SPIN selling methodology (Situation, Problem, Implication, Need-payoff)
-    - Focus on long-term value creation and ROI
-    - Present customized solutions based on customer needs
-    - Discuss implementation strategy and success metrics`,
+    solution: {
+      title: '전략적 솔루션 컨설팅',
+      description: '장기적 비즈니스 전환 및 혁신 전략 수립',
+      prompt: `You are a strategic transformation consultant.
+      Key Responsibilities:
+      - Develop comprehensive digital transformation strategies
+      - Identify core business challenges and opportunities
+      - Create roadmaps for implementation
+      - Define success metrics and KPIs
+      
+      Communication Guidelines:
+      - Focus on long-term strategic value
+      - Use industry best practices and benchmarks
+      - Provide phased implementation approaches
+      - Address change management considerations
+      - Emphasize sustainable growth strategies`,
+    },
     
-    closing: `You are a senior sales closing specialist focused on value-based negotiations.
-    - Begin by confirming previous discussions and current status
-    - Address any remaining concerns professionally
-    - Present clear value propositions
-    - Discuss terms and conditions confidently
-    - Guide towards successful deal closure`,
+    closing: {
+      title: '계약 클로징 전문',
+      description: '최종 계약 체결 및 협상을 위한 상담',
+      prompt: `You are a senior sales closing specialist.
+      Key Responsibilities:
+      - Navigate final negotiations effectively
+      - Address remaining concerns and objections
+      - Clarify terms and conditions
+      - Secure mutual agreement
+      
+      Communication Guidelines:
+      - Summarize previous agreements
+      - Focus on value realization
+      - Handle objections professionally
+      - Guide through decision-making process
+      - Maintain win-win perspective`,
+    },
   };
 
   // 톤 설정 옵션
@@ -64,10 +109,9 @@ export function Conversation() {
   // 프리셋 변경 핸들러
   const handlePresetChange = (type: string) => {
     setAgentType(type);
-    setPrompt(presetPrompts[type as keyof typeof presetPrompts]);
+    setPrompt(presetPrompts[type as keyof typeof presetPrompts].prompt);
   };
-//   secret-key
-// hello
+
   const startConversation = useCallback(async () => {
     try {
       await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -96,23 +140,30 @@ export function Conversation() {
   return (
     <div className="flex flex-col items-center gap-4">
       <div className="flex flex-col gap-4 mb-4 w-full max-w-md">
-        <select
-          value={agentType}
-          onChange={(e) => handlePresetChange(e.target.value)}
-          className="px-4 py-2 border border-gray-600 rounded bg-gray-800 text-gray-200"
-        >
-          <option value="general">비즈니스 컨설팅 상담</option>
-          <option value="technical">기술 솔루션 상담</option>
-          <option value="solution">전략적 솔루션 컨설팅</option>
-          <option value="closing">계약 클로징 전문</option>
-        </select>
+        <div className="space-y-2">
+          <label className="text-gray-200 text-sm">상담 유형 선택</label>
+          <select
+            value={agentType}
+            onChange={(e) => handlePresetChange(e.target.value)}
+            className="px-4 py-2 border border-gray-600 rounded bg-gray-800 text-gray-200 w-full"
+          >
+            {Object.entries(presetPrompts).map(([key, value]) => (
+              <option key={key} value={key}>
+                {value.title} - {value.description}
+              </option>
+            ))}
+          </select>
+        </div>
 
-        <textarea
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          placeholder="상세 프롬프트 입력"
-          className="px-4 py-2 border border-gray-600 rounded h-32 bg-gray-800 text-gray-200 placeholder-gray-400"
-        />
+        <div className="space-y-2">
+          <label className="text-gray-200 text-sm">상세 프롬프트 설정</label>
+          <textarea
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            placeholder="프롬프트를 수정하여 상담 스타일을 커스터마이즈하세요"
+            className="px-4 py-2 border border-gray-600 rounded h-48 bg-gray-800 text-gray-200 placeholder-gray-400 w-full"
+          />
+        </div>
 
         <select
           value={tone}
