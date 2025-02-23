@@ -94,7 +94,7 @@ function TestPageContent() {
     if (!inputMessage.trim() || !isConnected) return;
     
     try {
-      await conversation.sendMessage(inputMessage);
+      // await conversation.sendMessage(inputMessage);
       setInputMessage('');
     } catch (error) {
       console.error("Failed to send message:", error);
