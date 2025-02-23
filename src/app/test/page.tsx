@@ -79,24 +79,34 @@ function TestPageContent() {
         </div>
 
         <div ref={chatContainerRef} className="flex-1 overflow-y-auto space-y-4 mb-4">
-          {messages.map((message, index) => (
-            <div
-              key={index}
-              className={`flex ${
-                message.role === "assistant" ? "justify-start" : "justify-end"
-              }`}
-            >
-              <Card
-                className={`p-4 max-w-[80%] ${
-                  message.role === "assistant"
-                    ? "bg-sky-900/50 border-sky-500/20 text-white"
-                    : "bg-sky-500 text-white"
+          {messages.length === 0 ? (
+            <div className="h-full flex flex-col items-center justify-center text-center space-y-4">
+              <div className="text-4xl">👋</div>
+              <h2 className="text-2xl font-semibold">Shall we begin?</h2>
+              <p className="text-gray-400">
+                Say message to start the conversation
+              </p>
+            </div>
+          ) : (
+            messages.map((message, index) => (
+              <div
+                key={index}
+                className={`flex ${
+                  message.role === "assistant" ? "justify-start" : "justify-end"
                 }`}
               >
-                {message.content}
-              </Card>
-            </div>
-          ))}
+                <Card
+                  className={`p-4 max-w-[80%] ${
+                    message.role === "assistant"
+                      ? "bg-sky-900/50 border-sky-500/20 text-white"
+                      : "bg-sky-500 text-white"
+                  }`}
+                >
+                  {message.content}
+                </Card>
+              </div>
+            ))
+          )}
         </div>
 
         <div className="flex items-end gap-2">
