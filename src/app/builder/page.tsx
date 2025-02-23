@@ -88,7 +88,6 @@ function BuilderContent() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const [isListening, setIsListening] = useState(false);
-  const [isClient, setIsClient] = useState(false);
   const [newKnowledge, setNewKnowledge] = useState("");
   const [newTool, setNewTool] = useState<Tool>({
     name: "",
@@ -282,31 +281,15 @@ ${messages.map(m => `${m.role}: ${m.content}`).join('\n')}`
       stopSession();
     };
   }, []); // 빈 의존성 배열
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  useEffect(() => {
-    if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop =
-        chatContainerRef.current.scrollHeight;
-    }
-  }, []);
-
-  // 컴포넌트 마운트 시 초기 메시지 처리
   useEffect(() => {
     const initialPrompt = searchParams.get('prompt');
-    const isInitialMessage = searchParams.get('initialMessage');
     
-    if (initialPrompt && isInitialMessage) {
-      // 초기 메시지를 messages 배열에 추가
+    if (initialPrompt) {
       setMessages([{
         role: 'user',
         content: initialPrompt
       }]);
       
-      // GPT 설정 업데이트 트리거
       setConfigWithGPTOnCustomerMessage(initialPrompt);
     }
   }, [searchParams, setConfigWithGPTOnCustomerMessage]);
