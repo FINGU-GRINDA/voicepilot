@@ -84,7 +84,7 @@ function TestPageContent() {
               <div className="text-4xl">👋</div>
               <h2 className="text-2xl font-semibold">Shall we begin?</h2>
               <p className="text-gray-400">
-                Say message to start the conversation
+                Say who are you to start the conversation
               </p>
             </div>
           ) : (

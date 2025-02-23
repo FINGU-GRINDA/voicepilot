@@ -351,9 +351,18 @@ ${messages.map(m => `${m.role}: ${m.content}`).join('\n')}`
     }
   };
 
-  // 메시지 전송 핸들러 추가
+  // 메시지 전송 핸들러 수정
   const handleSendMessage = async () => {
     if (!inputMessage.trim()) return;
+    
+    // 메시지를 대화 목록에 추가
+    const newMessage: Message = {
+      role: 'user',
+      content: inputMessage
+    };
+    setMessages(prev => [...prev, newMessage]);
+    
+    // GPT 설정 업데이트 실행
     await setConfigWithGPTOnCustomerMessage();
   };
 
