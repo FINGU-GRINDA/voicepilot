@@ -29,13 +29,13 @@ export default function Page() {
     recognition.start();
     setIsMicActive(true);
 
-    recognition.onresult = (event) => {
+    recognition.onresult = (event: { results: { [key: number]: { transcript: string }[] } }) => {
       const speechResult = event.results[0][0].transcript;
       console.log("Speech received: ", speechResult);
       setPrompt(speechResult);
     };
 
-    recognition.onerror = (event) => {
+    recognition.onerror = (event: { error: string }) => {
       console.error("Speech recognition error detected: ", event.error);
       setIsMicActive(false);
     };
