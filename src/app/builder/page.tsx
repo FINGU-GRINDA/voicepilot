@@ -133,6 +133,7 @@ export default function Page() {
   });
 
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     setIsClient(true);
@@ -144,6 +145,23 @@ export default function Page() {
         chatContainerRef.current.scrollHeight;
     }
   }, []);
+
+  // 컴포넌트 마운트 시 초기 메시지 처리
+  useEffect(() => {
+    const initialPrompt = searchParams.get('prompt');
+    const isInitialMessage = searchParams.get('initialMessage');
+    
+    if (initialPrompt && isInitialMessage) {
+      // 초기 메시지를 messages 배열에 추가
+      setMessages([{
+        role: 'user',
+        content: initialPrompt
+      }]);
+      
+      // GPT 설정 업데이트 트리거
+      setConfigWithGPTOnCustomerMessage(initialPrompt);
+    }
+  }, [searchParams]);
 
   const addKnowledgeBase = () => {
     if (newKnowledge.trim()) {

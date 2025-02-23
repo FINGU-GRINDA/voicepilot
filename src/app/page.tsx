@@ -51,7 +51,10 @@ export default function Page() {
       alert("Please enter a prompt before clicking the button.");
       return;
     }
-    const queryString = new URLSearchParams({ prompt }).toString();
+    const queryString = new URLSearchParams({ 
+      prompt,
+      initialMessage: "true"  // 이것이 초기 메시지임을 표시
+    }).toString();
 
     router.push(`/builder?${queryString}`);
   };
