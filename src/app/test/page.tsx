@@ -37,20 +37,8 @@ function TestPageContent() {
   useEffect(() => {
     const startSession = async () => {
       try {
-        console.log("Requesting audio permission...");
         await navigator.mediaDevices.getUserMedia({ audio: true });
-        console.log("Audio permission granted");
-
-        if (!aiSuggestedConfig) {
-          console.warn("AI configuration is not available");
-          return;
-        }
-        
-        console.log("Starting conversation session with config:", {
-          agentId: process.env.NEXT_PUBLIC_AGENT_ID,
-          language: aiSuggestedConfig.language,
-        });
-        
+        console.log(aiSuggestedConfig);
         await conversation.startSession({
           agentId: process.env.NEXT_PUBLIC_AGENT_ID,
           overrides: {
@@ -63,52 +51,21 @@ function TestPageContent() {
             },
           },
         });
-        console.log("Conversation session started successfully");
       } catch (error) {
         console.error("Failed to start conversation:", error);
-        if (error instanceof Error) {
-          console.error("Error details:", error.message);
-        }
       }
     };
 
     startSession();
-    
     return () => {
-      console.log("Ending conversation session");
       conversation.endSession();
     };
-  }, [conversation, aiSuggestedConfig]);
+  }, []);
 
   const handleSendMessage = async () => {
     if (!inputMessage.trim()) return;
-    
-    try {
-      console.log("Sending message:", inputMessage);
-      // 메시지 처리 로직 추가
-      setInputMessage('');
-      console.log("Message sent successfully");
-    } catch (error) {
-      console.error("Failed to send message:", error);
-      if (error instanceof Error) {
-        console.error("Error details:", error.message);
-      }
-    }
-  };
-
-  const toggleListening = () => {
-    try {
-      setIsListening(prev => {
-        const newState = !prev;
-        console.log(`${newState ? 'Starting' : 'Stopping'} voice recording`);
-        return newState;
-      });
-    } catch (error) {
-      console.error("Error toggling voice recording:", error);
-      if (error instanceof Error) {
-        console.error("Error details:", error.message);
-      }
-    }
+    setInputMessage('');
+    // 메시지 처리 로직 추가
   };
 
   return (
@@ -157,7 +114,7 @@ function TestPageContent() {
                   ? "bg-red-500 hover:bg-red-600"
                   : "bg-sky-500 hover:bg-sky-600"
               }`}
-              onClick={toggleListening}
+              onClick={() => setIsListening(!isListening)}
             >
               {isListening ? (
                 <Pause className="h-4 w-4" />
