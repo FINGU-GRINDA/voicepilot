@@ -26,11 +26,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 
-interface VoiceAgentBuilderProps {
-  onClose: () => void;
-  initialDescription: string;
-}
-
 interface Message {
   role: "user" | "assistant";
   content: string;
@@ -58,23 +53,16 @@ interface AgentConfig {
   language: string;
 }
 
-export default function Page({
-  onClose,
-  initialDescription,
-}: VoiceAgentBuilderProps) {
-  const [messages, setMessages] = useState<Message[]>([
-  
-  ]);
+export default function Page() {
+  const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const [isListening, setIsListening] = useState(false);
   const [agentConfig, setAgentConfig] = useState<AgentConfig>({
-    name: "AI Customer Service Agent",
-    description:
-      initialDescription ||
-      "A helpful assistant that handles customer inquiries and support requests",
-    knowledgeBase: ["https://example.com/customer-service-handbook"],
+    name: "Voice AI Assistant",
+    description: "An intelligent voice-enabled AI assistant that provides natural and engaging conversations",
+    knowledgeBase: ["https://docs.elevenlabs.io/quickstart"],
     systemPrompt:
-      "You are a friendly and efficient customer service AI assistant.",
+      "You are a sophisticated Voice AI assistant focused on helping users configure their ideal voice AI agent. Guide the conversation by asking these questions one at a time, waiting for the user's response before moving to the next question:\n\n1. Purpose\n- Ask: '이 음성 AI 어시스턴트를 어떤 목적으로 사용하실 계획인가요? (예: 고객 서비스, 교육, 개인 비서 등)'\n- Listen to their use case and confirm understanding\n\n2. Knowledge Base\n- Ask: '음성 AI가 어떤 정보나 지식을 가지고 있어야 하나요? 특정 분야나 주제가 있다면 알려주세요.'\n- Help them specify required knowledge domains\n\n3. Language Preferences\n- Ask: '어떤 언어로 소통하기를 원하시나요? 다국어 지원이 필요하신가요?'\n- Confirm language requirements and formality level\n\nAfter gathering these basic requirements, we can discuss more specific details about:\n- Voice characteristics (성별, 나이, 말투)\n- Communication style (격식체/비격식체, 전문성 수준)\n- Technical specifications (음성 품질, 응답 속도)\n\nRemember to:\n- Ask only one question at a time\n- Wait for user response before proceeding\n- Provide examples when needed\n- Confirm understanding before moving to next topic.",
     tools: [
       {
         name: "Check Order Status",
@@ -87,9 +75,9 @@ export default function Page({
       speed: 1,
       style: "Friendly and Helpful",
     },
-    welcomeMessage: "Hello! How can I assist you today?",
+    welcomeMessage: "Hi there! I'm your Voice AI assistant. I'm here to help and chat with you naturally. Feel free to speak or type your message - I'm listening!",
     fallbackMessage:
-      "I'm sorry, I didn't quite understand that. Could you please rephrase your question?",
+      "I didn't catch that clearly. Could you please repeat that or try typing your message instead?",
     language: "en",
   });
   const [isTestMode, setIsTestMode] = useState(false);
@@ -203,9 +191,9 @@ export default function Page({
         overrides: {
           agent: {
             prompt: {
-              prompt: agentConfig.systemPrompt,
+              prompt: "You are a sophisticated Voice AI assistant focused on helping users configure their ideal voice AI agent. Guide the conversation by asking these questions one at a time, waiting for the user's response before moving to the next question:\n\n1. Purpose\n- Ask: '이 음성 AI 어시스턴트를 어떤 목적으로 사용하실 계획인가요? (예: 고객 서비스, 교육, 개인 비서 등)'\n- Listen to their use case and confirm understanding\n\n2. Knowledge Base\n- Ask: '음성 AI가 어떤 정보나 지식을 가지고 있어야 하나요? 특정 분야나 주제가 있다면 알려주세요.'\n- Help them specify required knowledge domains\n\n3. Language Preferences\n- Ask: '어떤 언어로 소통하기를 원하시나요? 다국어 지원이 필요하신가요?'\n- Confirm language requirements and formality level\n\nAfter gathering these basic requirements, we can discuss more specific details about:\n- Voice characteristics (성별, 나이, 말투)\n- Communication style (격식체/비격식체, 전문성 수준)\n- Technical specifications (음성 품질, 응답 속도)\n\nRemember to:\n- Ask only one question at a time\n- Wait for user response before proceeding\n- Provide examples when needed\n- Confirm understanding before moving to next topic.",
             },
-            firstMessage: agentConfig.welcomeMessage,
+            firstMessage: "Hello! I'm here to help create your perfect voice AI experience. For what purpose do you plan to use this voice AI assistant? (e.g. customer service, training, personal secretary, etc.)",
             language: agentConfig.language,
           },
         },
@@ -494,7 +482,7 @@ export default function Page({
                   <Sparkles className="w-5 h-5 text-sky-400" />
                   <h2 className="text-xl font-bold">AI Assistant</h2>
                 </div>
-                <Button variant="ghost" size="icon" onClick={onClose}>
+                <Button variant="ghost" size="icon" onClick={() => {}}>
                   <X className="h-6 w-6" />
                 </Button>
               </div>
@@ -529,7 +517,6 @@ export default function Page({
                 <Textarea
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
-                  // onKeyPress={handleKeyPress}
                   placeholder="Type your message..."
                   className="flex-1 min-h-[80px] max-h-[160px] bg-white/5 border-white/10"
                 />
@@ -541,7 +528,6 @@ export default function Page({
                         ? "bg-red-500 hover:bg-red-600"
                         : "bg-sky-500 hover:bg-sky-600"
                     }`}
-                    // onClick={toggleListening}
                   >
                     {isListening ? (
                       <Pause className="h-4 w-4" />
@@ -552,7 +538,6 @@ export default function Page({
                   <Button
                     size="icon"
                     className="rounded-full bg-sky-500 hover:bg-sky-600"
-                    // onClick={handleSendMessage}
                     disabled={!inputMessage.trim()}
                   >
                     <Send className="h-4 w-4" />
@@ -609,7 +594,6 @@ export default function Page({
               <Textarea
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
-                // onKeyPress={handleKeyPress}
                 placeholder="Type your message..."
                 className="flex-1 min-h-[80px] max-h-[160px] bg-white/5 border-white/10"
               />
@@ -621,7 +605,6 @@ export default function Page({
                       ? "bg-red-500 hover:bg-red-600"
                       : "bg-sky-500 hover:bg-sky-600"
                   }`}
-                  // onClick={toggleListening}
                 >
                   {isListening ? (
                     <Pause className="h-4 w-4" />
@@ -632,7 +615,6 @@ export default function Page({
                 <Button
                   size="icon"
                   className="rounded-full bg-sky-500 hover:bg-sky-600"
-                  // onClick={handleTestMessage}
                   disabled={!inputMessage.trim()}
                 >
                   <Send className="h-4 w-4" />
