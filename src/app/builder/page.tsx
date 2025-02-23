@@ -246,12 +246,12 @@ export default function Page() {
       const gptMessages: Message[] = [
         {
           role: 'system',
-          content: `You are an AI configuration assistant. Analyze the conversation history and current AI suggested configuration to extract relevant information. Prioritize information from the most recent user messages over existing configurations. Return a JSON object that reflects these preferences.
+          content: `You are an AI configuration assistant. Analyze the conversation history and current AI suggested configuration to extract relevant information. Prioritize information from the most recent user messages over existing configurations. Return a complete JSON object that includes all configuration fields.
 
 Current AI suggested configuration:
 ${JSON.stringify(aiSuggestedConfig, null, 2)}
 
-Return a JSON object with only the fields that can be confidently determined from the conversation. The response should follow this structure:
+Return a JSON object that follows this structure, including all fields:
 {
   "name": "string",
   "description": "string",
@@ -273,10 +273,12 @@ Return a JSON object with only the fields that can be confidently determined fro
 }
 
 Important:
-1. Prioritize information from user messages over existing configuration
-2. Only include fields that are explicitly discussed or can be confidently inferred
-3. Maintain any existing configuration values that aren't contradicted by the conversation
-4. If a field is not mentioned in the conversation, exclude it from the response`
+1. Include ALL fields in the response, even if they haven't changed
+2. Prioritize information from user messages over existing configuration
+3. For fields not explicitly discussed in the conversation:
+   - Use values from the current AI suggested configuration if available
+   - Use reasonable defaults based on the context if no existing value
+4. Ensure the configuration is complete and coherent`
         },
         ...messages,
         { role: 'user', content: message }
