@@ -363,7 +363,7 @@ ${messages.map(m => `${m.role}: ${m.content}`).join('\n')}`
     setMessages(prev => [...prev, newMessage]);
     
     // Eleven Labs conversation에 메시지 전송
-    await conversation.sendMessage(inputMessage);
+    // await conversation.sendMessage(inputMessage);
     
     // GPT 설정 업데이트 실행
     await setConfigWithGPTOnCustomerMessage();
