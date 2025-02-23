@@ -38,6 +38,7 @@ function TestPageContent() {
     const startSession = async () => {
       try {
         await navigator.mediaDevices.getUserMedia({ audio: true });
+        console.log(aiSuggestedConfig);
         await conversation.startSession({
           agentId: process.env.NEXT_PUBLIC_AGENT_ID,
           overrides: {
