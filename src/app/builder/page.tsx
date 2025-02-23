@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
-import { useConversation } from '@11labs/react';
+import { useConversation } from "@11labs/react";
 import type React from "react";
 import { useState, useEffect, useRef } from "react";
 import {
@@ -25,6 +25,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
+import { useSearchParams } from "next/navigation";
 
 interface Message {
   role: "user" | "assistant";
@@ -54,12 +55,17 @@ interface AgentConfig {
 }
 
 export default function Page() {
+  const searchParams = useSearchParams();
+
+  const prompt = searchParams.get("prompt");
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const [isListening, setIsListening] = useState(false);
   const [agentConfig, setAgentConfig] = useState<AgentConfig>({
     name: "Voice AI Assistant",
-    description: "An intelligent voice-enabled AI assistant that provides natural and engaging conversations",
+    description:
+      "An intelligent voice-enabled AI assistant that provides natural and engaging conversations",
     knowledgeBase: ["https://docs.elevenlabs.io/quickstart"],
     systemPrompt:
       "You are a sophisticated Voice AI assistant focused on helping users configure their ideal voice AI agent. Guide the conversation by asking these questions one at a time, waiting for the user's response before moving to the next question:\n\n1. Purpose\n- Ask: '이 음성 AI 어시스턴트를 어떤 목적으로 사용하실 계획인가요? (예: 고객 서비스, 교육, 개인 비서 등)'\n- Listen to their use case and confirm understanding\n\n2. Knowledge Base\n- Ask: '음성 AI가 어떤 정보나 지식을 가지고 있어야 하나요? 특정 분야나 주제가 있다면 알려주세요.'\n- Help them specify required knowledge domains\n\n3. Language Preferences\n- Ask: '어떤 언어로 소통하기를 원하시나요? 다국어 지원이 필요하신가요?'\n- Confirm language requirements and formality level\n\nAfter gathering these basic requirements, we can discuss more specific details about:\n- Voice characteristics (성별, 나이, 말투)\n- Communication style (격식체/비격식체, 전문성 수준)\n- Technical specifications (음성 품질, 응답 속도)\n\nRemember to:\n- Ask only one question at a time\n- Wait for user response before proceeding\n- Provide examples when needed\n- Confirm understanding before moving to next topic.",
@@ -75,7 +81,8 @@ export default function Page() {
       speed: 1,
       style: "Friendly and Helpful",
     },
-    welcomeMessage: "Hi there! I'm your Voice AI assistant. I'm here to help and chat with you naturally. Feel free to speak or type your message - I'm listening!",
+    welcomeMessage:
+      "Hi there! I'm your Voice AI assistant. I'm here to help and chat with you naturally. Feel free to speak or type your message - I'm listening!",
     fallbackMessage:
       "I didn't catch that clearly. Could you please repeat that or try typing your message instead?",
     language: "en",
@@ -91,24 +98,24 @@ export default function Page() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [volume, setVolume] = useState(50);
   const [isClient, setIsClient] = useState(false);
-  
+
   const conversation = useConversation({
-    onConnect: () => console.log('Connected'),
-    onDisconnect: () => console.log('Disconnected'),
-    onMessage: ({ message, source }: { message: string, source: string }) => {
-      console.log('Message:', message, 'Source:', source);
-      const messageObj = { 
-        role: source === 'user' ? 'user' : 'assistant', 
-        content: message 
+    onConnect: () => console.log("Connected"),
+    onDisconnect: () => console.log("Disconnected"),
+    onMessage: ({ message, source }: { message: string; source: string }) => {
+      console.log("Message:", message, "Source:", source);
+      const messageObj = {
+        role: source === "user" ? "user" : "assistant",
+        content: message,
       };
-      
+
       if (isTestMode) {
-        setTestMessages(prev => [...prev, messageObj as Message]);
+        setTestMessages((prev) => [...prev, messageObj as Message]);
       } else {
-        setMessages(prev => [...prev, messageObj as Message]);
+        setMessages((prev) => [...prev, messageObj as Message]);
       }
     },
-    onError: (error: Error) => console.error('Error:', error),
+    onError: (error: Error) => console.error("Error:", error),
     preferHeadphonesForIosDevices: true,
   });
 
@@ -132,7 +139,6 @@ export default function Page() {
         testChatContainerRef.current.scrollHeight;
     }
   }, []);
-
 
   const speakMessage = (message: string) => {
     setIsSpeaking(true);
@@ -185,21 +191,23 @@ export default function Page() {
   const startConversationSession = async () => {
     try {
       await navigator.mediaDevices.getUserMedia({ audio: true });
-      
+
       await conversation.startSession({
         agentId: process.env.NEXT_PUBLIC_AGENT_ID,
         overrides: {
           agent: {
             prompt: {
-              prompt: "You are a sophisticated Voice AI assistant focused on helping users configure their ideal voice AI agent. Guide the conversation by asking these questions one at a time, waiting for the user's response before moving to the next question:\n\n1. Purpose\n- Ask: '이 음성 AI 어시스턴트를 어떤 목적으로 사용하실 계획인가요? (예: 고객 서비스, 교육, 개인 비서 등)'\n- Listen to their use case and confirm understanding\n\n2. Knowledge Base\n- Ask: '음성 AI가 어떤 정보나 지식을 가지고 있어야 하나요? 특정 분야나 주제가 있다면 알려주세요.'\n- Help them specify required knowledge domains\n\n3. Language Preferences\n- Ask: '어떤 언어로 소통하기를 원하시나요? 다국어 지원이 필요하신가요?'\n- Confirm language requirements and formality level\n\nAfter gathering these basic requirements, we can discuss more specific details about:\n- Voice characteristics (성별, 나이, 말투)\n- Communication style (격식체/비격식체, 전문성 수준)\n- Technical specifications (음성 품질, 응답 속도)\n\nRemember to:\n- Ask only one question at a time\n- Wait for user response before proceeding\n- Provide examples when needed\n- Confirm understanding before moving to next topic.",
+              prompt:
+                "You are a sophisticated Voice AI assistant focused on helping users configure their ideal voice AI agent. Guide the conversation by asking these questions one at a time, waiting for the user's response before moving to the next question:\n\n1. Purpose\n- Ask: '이 음성 AI 어시스턴트를 어떤 목적으로 사용하실 계획인가요? (예: 고객 서비스, 교육, 개인 비서 등)'\n- Listen to their use case and confirm understanding\n\n2. Knowledge Base\n- Ask: '음성 AI가 어떤 정보나 지식을 가지고 있어야 하나요? 특정 분야나 주제가 있다면 알려주세요.'\n- Help them specify required knowledge domains\n\n3. Language Preferences\n- Ask: '어떤 언어로 소통하기를 원하시나요? 다국어 지원이 필요하신가요?'\n- Confirm language requirements and formality level\n\nAfter gathering these basic requirements, we can discuss more specific details about:\n- Voice characteristics (성별, 나이, 말투)\n- Communication style (격식체/비격식체, 전문성 수준)\n- Technical specifications (음성 품질, 응답 속도)\n\nRemember to:\n- Ask only one question at a time\n- Wait for user response before proceeding\n- Provide examples when needed\n- Confirm understanding before moving to next topic.",
             },
-            firstMessage: "Hello! I'm here to help create your perfect voice AI experience. For what purpose do you plan to use this voice AI assistant? (e.g. customer service, training, personal secretary, etc.)",
+            firstMessage:
+              "Hello! I'm here to help create your perfect voice AI experience. For what purpose do you plan to use this voice AI assistant? (e.g. customer service, training, personal secretary, etc.)",
             language: agentConfig.language,
           },
         },
       });
     } catch (error) {
-      console.error('Failed to start conversation:', error);
+      console.error("Failed to start conversation:", error);
     }
   };
 
@@ -496,7 +504,9 @@ export default function Page() {
                   <div
                     key={index}
                     className={`flex ${
-                      message.role === "assistant" ? "justify-start" : "justify-end"
+                      message.role === "assistant"
+                        ? "justify-start"
+                        : "justify-end"
                     }`}
                   >
                     <Card
@@ -573,7 +583,9 @@ export default function Page() {
                 <div
                   key={index}
                   className={`flex ${
-                    message.role === "assistant" ? "justify-start" : "justify-end"
+                    message.role === "assistant"
+                      ? "justify-start"
+                      : "justify-end"
                   }`}
                 >
                   <Card
