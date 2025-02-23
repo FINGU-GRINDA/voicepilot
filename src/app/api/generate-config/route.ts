@@ -4,7 +4,7 @@ export async function POST(
   req: Request,
 ) {
   try {
-    if (!process.env.OPENAI_API_KEY) {
+    if (!process.env.NEXT_PUBLIC_OPENAI_API_KEY) {
       console.error('OPENAI_API_KEY is not defined');
       return NextResponse.json(
         { error: 'OpenAI API key is not configured' },
@@ -57,7 +57,7 @@ Return a JSON object that follows this structure, including all fields:
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
+        'Authorization': `Bearer ${process.env.NEXT_PUBLIC_OPENAI_API_KEY}`
       },
       body: JSON.stringify({
         model: 'gpt-4o',
