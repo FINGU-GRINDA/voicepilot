@@ -18,11 +18,18 @@ function TestPageContent() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const [isListening, setIsListening] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   
   const conversation = useConversation({
-    onConnect: () => console.log('Connected'),
-    onDisconnect: () => console.log('Disconnected'),
+    onConnect: () => {
+      console.log('Connected');
+      setIsConnected(true);
+    },
+    onDisconnect: () => {
+      console.log('Disconnected');
+      setIsConnected(false);
+    },
     onMessage: ({ message, source }: { message: string, source: string }) => {
       const messageObj: Message = { 
         role: source === 'user' ? 'user' : 'assistant', 
@@ -35,10 +42,24 @@ function TestPageContent() {
   });
 
   useEffect(() => {
+    let mounted = true;
+
     const startSession = async () => {
+      if (!mounted) return;
+
       try {
         await navigator.mediaDevices.getUserMedia({ audio: true });
-        console.log(aiSuggestedConfig);
+        
+        if (!mounted) return;
+
+        // 이전 세션이 있다면 종료
+        if (isConnected) {
+          await conversation.endSession().catch(err => {
+            console.log('Error ending previous session:', err);
+          });
+        }
+
+        // 새 세션 시작
         await conversation.startSession({
           agentId: process.env.NEXT_PUBLIC_AGENT_ID,
           overrides: {
@@ -57,15 +78,27 @@ function TestPageContent() {
     };
 
     startSession();
+
     return () => {
-      conversation.endSession();
+      mounted = false;
+      // 컴포넌트 언마운트 시 세션 종료
+      if (isConnected) {
+        conversation.endSession().catch(err => {
+          console.log('Error ending session on unmount:', err);
+        });
+      }
     };
-  }, []);
+  }, [aiSuggestedConfig]); // aiSuggestedConfig가 변경될 때마다 세션 재시작
 
   const handleSendMessage = async () => {
-    if (!inputMessage.trim()) return;
-    setInputMessage('');
-    // 메시지 처리 로직 추가
+    if (!inputMessage.trim() || !isConnected) return;
+    
+    try {
+      await conversation.sendMessage(inputMessage);
+      setInputMessage('');
+    } catch (error) {
+      console.error("Failed to send message:", error);
+    }
   };
 
   return (

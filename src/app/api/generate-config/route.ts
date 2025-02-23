@@ -4,7 +4,7 @@ export async function POST(
   req: Request,
 ) {
   try {
-    if (!process.env.OPENAI_API_KEY) {
+    if (!process.env.NEXT_PUBLIC_OPENAI_API_KEY) {
       console.error('OPENAI_API_KEY is not defined');
       return NextResponse.json(
         { error: 'OpenAI API key is not configured' },
