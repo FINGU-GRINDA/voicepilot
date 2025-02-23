@@ -12,7 +12,7 @@ export function Conversation() {
   const conversation = useConversation({
     onConnect: () => console.log('Connected'),
     onDisconnect: () => console.log('Disconnected'),
-    onMessage: (message: any) => console.log('Message:', message),
+    onMessage: ({ message, source }: { message: string, source: string }) => console.log('Message:', message, 'Source:', source),
     onError: (error: Error) => console.error('Error:', error),
     preferHeadphonesForIosDevices: true,
     connectionDelay: {
@@ -143,7 +143,7 @@ export function Conversation() {
     } catch (error) {
       console.error('Failed to start conversation:', error);
     }
-  }, [conversation, prompt, language, volume, tone]);
+  }, [conversation, prompt, language, volume, tone, toneOptions]);
 
   const stopConversation = useCallback(async () => {
     await conversation.endSession();
