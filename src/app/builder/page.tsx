@@ -2,7 +2,7 @@
 "use client";
 import { useConversation } from "@11labs/react";
 import type React from "react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import {
   Mic,
   Pause,
@@ -57,6 +57,16 @@ interface AgentConfig {
 }
 
 export default function Page() {
+  return (
+    <div className="fixed inset-0 bg-gradient-to-b from-sky-900 to-black text-white">
+      <Suspense fallback={<div>Loading...</div>}>
+        <BuilderContent />
+      </Suspense>
+    </div>
+  );
+}
+
+function BuilderContent() {
   // 주요 상태 관리
   const [messages, setMessages] = useState<Message[]>([]); // 채팅 메시지 저장
   const [inputMessage, setInputMessage] = useState(""); // 사용자 입력 메시지
@@ -94,27 +104,6 @@ export default function Page() {
   });
   const [isClient, setIsClient] = useState(false);
   
-  // Eleven Labs 음성 대화 훅 설정
-  const conversation = useConversation({
-    onConnect: () => console.log('Connected'),
-    onDisconnect: () => console.log('Disconnected'),
-    onMessage: ({ message, source }: { message: string, source: string }) => {
-      const messageObj: Message = { 
-        role: source === 'user' ? 'user' : 'assistant', 
-        content: message 
-      };
-      setMessages(prev => [...prev, messageObj]);
-      if (source === 'user') {
-        console.log('user message');
-        setConfigWithGPTOnCustomerMessage(message);
-      }
-    },
-    onError: (error: Error) => console.error("Error:", error),
-    preferHeadphonesForIosDevices: true,
-  });
-
-  const chatContainerRef = useRef<HTMLDivElement>(null);
-
   // AI 응답으로 받은 설정을 저장할 새로운 상태
   const [aiSuggestedConfig, setAiSuggestedConfig] = useState<Partial<AgentConfig>>({
     name: '',
@@ -134,127 +123,10 @@ export default function Page() {
 
   const router = useRouter();
   const searchParams = useSearchParams();
+  const chatContainerRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  useEffect(() => {
-    if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop =
-        chatContainerRef.current.scrollHeight;
-    }
-  }, []);
-
-  // 컴포넌트 마운트 시 초기 메시지 처리
-  useEffect(() => {
-    const initialPrompt = searchParams.get('prompt');
-    const isInitialMessage = searchParams.get('initialMessage');
-    
-    if (initialPrompt && isInitialMessage) {
-      // 초기 메시지를 messages 배열에 추가
-      setMessages([{
-        role: 'user',
-        content: initialPrompt
-      }]);
-      
-      // GPT 설정 업데이트 트리거
-      setConfigWithGPTOnCustomerMessage(initialPrompt);
-    }
-  }, [searchParams]);
-
-  const addKnowledgeBase = () => {
-    if (newKnowledge.trim()) {
-      setAgentConfig((prev) => ({
-        ...prev,
-        knowledgeBase: [...prev.knowledgeBase, newKnowledge],
-      }));
-      setNewKnowledge("");
-    }
-  };
-
-  const removeKnowledgeBase = (index: number) => {
-    setAgentConfig((prev) => ({
-      ...prev,
-      knowledgeBase: prev.knowledgeBase.filter((_, i) => i !== index),
-    }));
-  };
-
-  const addTool = () => {
-    if (newTool.name && newTool.description) {
-      setAgentConfig((prev) => ({
-        ...prev,
-        tools: [...prev.tools, newTool],
-      }));
-      setNewTool({ name: "", description: "", parameters: "" });
-    }
-  };
-
-  const removeTool = (index: number) => {
-    setAgentConfig((prev) => ({
-      ...prev,
-      tools: prev.tools.filter((_, i) => i !== index),
-    }));
-  };
-
-  // 음성 대화 세션 시작 함수
-  const startConversationSession = async () => {
-    try {
-      // 마이크 권한 요청
-      await navigator.mediaDevices.getUserMedia({ audio: true });
-      
-      // 에이전트 세션 시작 및 설정
-      await conversation.startSession({
-        agentId: process.env.NEXT_PUBLIC_AGENT_ID,
-        overrides: {
-          agent: {
-            prompt: {
-              prompt: "You are a sophisticated Voice AI assistant designed to help users configure their ideal voice AI agent. Guide the conversation by asking one short question at a time, ensuring clarity and confirmation before proceeding to the next step. You are a sophisticated Voice AI assistant designed to help users configure their ideal voice AI agent. Guide the conversation by asking one short question at a time, ensuring clarity and confirmation before proceeding to the next step. You are a sophisticated Voice AI assistant designed to help users configure their ideal voice AI agent. Guide the conversation by asking one short question at a time, ensuring clarity and confirmation before proceeding to the next step.",
-              // prompt: "당신은 사용자가 이상적인 음성 AI 에이전트를 구성할 수 있도록 돕는 데 중점을 둔 정교한 음성 AI 비서입니다. 다음 질문으로 넘어가기 전에 사용자의 응답을 기다리며 한 번에 하나씩 쩗은 질문하여 대화를 안내하세요:\n\n1. 목적\n- Ask: '이 음성 AI 어시스턴트를 어떤 목적으로 사용하실 계획인가요? (예: 고객 서비스, 교육, 개인 비서 등)'\n- 그들의 사용 사례를 듣고 이해를 확인하세요\n\n2. 지식 베이스\n- Ask: '음성 AI가 어떤 정보나 지식을 가지고 있어야 하나요? 특정 분야나 주제가 있다면 알려주세요.'\n- 필요한 지식 도메인을 지정하는 데 도움\n\n3. 언어 선호도\n- Ask: '어떤 언어로 소통하기를 원하시나요? 다국어 지원이 필요하신가요?'\n- 언어 요구 사항 및 형식 수준 확인\n\n이러한 기본 요구 사항을 수집한 후, 다음에 대해 더 구체적인 세부 사항을 논의할 수 있습니다:\n- 음성 특성(성별, 나이, 말투)\n- 커뮤니케이션 스타일 (격식체/비격식체, 전문성 수준)\n- 기술 사양(음성 품질, 응답 속도)\n\n기억하세요:\n- 한 번에 한 가지 질문만 하세요\n- 진행하기 전에 사용자 응답을 기다립니다\n- 필요할 때 예시 제공\n- 다음 주제로 넘어가기 전에 이해를 확인하세요.",
-            },
-            firstMessage: "Hello! For what purpose do you plan to use this voice AI assistant?",
-            // firstMessage: "안녕하세요! 이 음성 AI 비서를 어떤 용도로 활용하고 싶으신가요?",
-            language: "en",
-            // language: agentConfig.language,
-          },
-        },
-      });
-    } catch (error) {
-      console.error("Failed to start conversation:", error);
-    }
-  };
-
-  const stopConversationSession = async () => {
-    await conversation.endSession();
-  };
-
-  const extractJsonFromString = (text: string): Partial<AgentConfig> | null => {
-    try {
-      const jsonRegex = /{[\s\S]*}/;
-      const match = text.match(jsonRegex);
-      
-      if (!match) return null;
-      
-      const jsonStr = match[0];
-      const parsed = JSON.parse(jsonStr) as Partial<AgentConfig>;
-      
-      // AgentConfig 타입에 맞는 필드들만 필터링
-      const validKeys = [
-        'name', 'description', 'knowledgeBase', 'systemPrompt',
-        'tools', 'voiceConfig', 'welcomeMessage', 'fallbackMessage', 'language'
-      ];
-      
-      return Object.fromEntries(
-        Object.entries(parsed).filter(([key]) => validKeys.includes(key))
-      ) as Partial<AgentConfig>;
-    } catch (error) {
-      console.error('JSON parsing error:', error);
-      return null;
-    }
-  };
-
-  // OpenAI API를 통한 메시지 처리
-  const setConfigWithGPTOnCustomerMessage = async (messageText?: string) => {
+  // setConfigWithGPTOnCustomerMessage를 여기로 이동
+  const setConfigWithGPTOnCustomerMessage = useCallback(async (messageText?: string) => {
     const message = messageText || inputMessage;
     if (!message.trim()) return;
 
@@ -379,6 +251,148 @@ ${messages.map(m => `${m.role}: ${m.content}`).join('\n')}`
     } catch (error) {
       console.error('Error calling GPT API:', error);
     }
+  }, [inputMessage, messages, aiSuggestedConfig, agentConfig.voiceConfig]);
+
+  // Eleven Labs 음성 대화 훅 설정
+  const conversation = useConversation({
+    onConnect: () => console.log('Connected'),
+    onDisconnect: () => console.log('Disconnected'),
+    onMessage: ({ message, source }: { message: string, source: string }) => {
+      const messageObj: Message = { 
+        role: source === 'user' ? 'user' : 'assistant', 
+        content: message 
+      };
+      setMessages(prev => [...prev, messageObj]);
+      if (source === 'user') {
+        console.log('user message');
+        setConfigWithGPTOnCustomerMessage(message);
+      }
+    },
+    onError: (error: Error) => console.error("Error:", error),
+    preferHeadphonesForIosDevices: true,
+  });
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop =
+        chatContainerRef.current.scrollHeight;
+    }
+  }, []);
+
+  // 컴포넌트 마운트 시 초기 메시지 처리
+  useEffect(() => {
+    const initialPrompt = searchParams.get('prompt');
+    const isInitialMessage = searchParams.get('initialMessage');
+    
+    if (initialPrompt && isInitialMessage) {
+      // 초기 메시지를 messages 배열에 추가
+      setMessages([{
+        role: 'user',
+        content: initialPrompt
+      }]);
+      
+      // GPT 설정 업데이트 트리거
+      setConfigWithGPTOnCustomerMessage(initialPrompt);
+    }
+  }, [searchParams, setConfigWithGPTOnCustomerMessage]);
+
+  // Move these functions inside useEffect or wrap them in useCallback
+  useEffect(() => {
+    // Define the functions inside useEffect to avoid dependency issues
+    const startSession = async () => {
+      try {
+        await navigator.mediaDevices.getUserMedia({ audio: true });
+        await conversation.startSession({
+          agentId: process.env.NEXT_PUBLIC_AGENT_ID,
+          overrides: {
+            agent: {
+              prompt: {
+                prompt: "You are a sophisticated Voice AI assistant designed to help users configure their ideal voice AI agent. Guide the conversation by asking one short question at a time, ensuring clarity and confirmation before proceeding to the next step. You are a sophisticated Voice AI assistant designed to help users configure their ideal voice AI agent. Guide the conversation by asking one short question at a time, ensuring clarity and confirmation before proceeding to the next step. You are a sophisticated Voice AI assistant designed to help users configure their ideal voice AI agent. Guide the conversation by asking one short question at a time, ensuring clarity and confirmation before proceeding to the next step.",
+              },
+              firstMessage: "Hello! For what purpose do you plan to use this voice AI assistant?",
+              language: "en",
+            },
+          },
+        });
+      } catch (error) {
+        console.error("Failed to start conversation:", error);
+      }
+    };
+
+    const stopSession = async () => {
+      await conversation.endSession();
+    };
+
+    // Start session on mount
+    startSession();
+
+    // Clean up on unmount
+    return () => {
+      stopSession();
+    };
+  }, [conversation]); // Add conversation as dependency
+
+  const addKnowledgeBase = () => {
+    if (newKnowledge.trim()) {
+      setAgentConfig((prev) => ({
+        ...prev,
+        knowledgeBase: [...prev.knowledgeBase, newKnowledge],
+      }));
+      setNewKnowledge("");
+    }
+  };
+
+  const removeKnowledgeBase = (index: number) => {
+    setAgentConfig((prev) => ({
+      ...prev,
+      knowledgeBase: prev.knowledgeBase.filter((_, i) => i !== index),
+    }));
+  };
+
+  const addTool = () => {
+    if (newTool.name && newTool.description) {
+      setAgentConfig((prev) => ({
+        ...prev,
+        tools: [...prev.tools, newTool],
+      }));
+      setNewTool({ name: "", description: "", parameters: "" });
+    }
+  };
+
+  const removeTool = (index: number) => {
+    setAgentConfig((prev) => ({
+      ...prev,
+      tools: prev.tools.filter((_, i) => i !== index),
+    }));
+  };
+
+  const extractJsonFromString = (text: string): Partial<AgentConfig> | null => {
+    try {
+      const jsonRegex = /{[\s\S]*}/;
+      const match = text.match(jsonRegex);
+      
+      if (!match) return null;
+      
+      const jsonStr = match[0];
+      const parsed = JSON.parse(jsonStr) as Partial<AgentConfig>;
+      
+      // AgentConfig 타입에 맞는 필드들만 필터링
+      const validKeys = [
+        'name', 'description', 'knowledgeBase', 'systemPrompt',
+        'tools', 'voiceConfig', 'welcomeMessage', 'fallbackMessage', 'language'
+      ];
+      
+      return Object.fromEntries(
+        Object.entries(parsed).filter(([key]) => validKeys.includes(key))
+      ) as Partial<AgentConfig>;
+    } catch (error) {
+      console.error('JSON parsing error:', error);
+      return null;
+    }
   };
 
   // 메시지 전송 핸들러 추가
@@ -394,17 +408,6 @@ ${messages.map(m => `${m.role}: ${m.content}`).join('\n')}`
       handleSendMessage();
     }
   };
-
-  // 페이지 진입/이탈 시 세션 자동 관리
-  useEffect(() => {
-    // 페이지 진입 시 세션 시작
-    startConversationSession();
-
-    // 페이지 이탈 시 세션 종료
-    return () => {
-      stopConversationSession();
-    };
-  }, []); // 컴포넌트 마운트/언마운트 시에만 실행
 
   // AI 제안 설정을 표시할 새로운 컴포넌트
   const AISuggestions = () => {
@@ -450,316 +453,314 @@ ${messages.map(m => `${m.role}: ${m.content}`).join('\n')}`
   };
 
   return (
-    <div className="fixed inset-0 bg-gradient-to-b from-sky-900 to-black text-white">
-      <div className="h-full flex">
-        <div className="w-1/2 p-6 overflow-y-auto border-r border-white/10">
-          <div className="max-w-md mx-auto space-y-8">
-            <div className="flex items-center gap-2">
-              <Bot className="w-6 h-6 text-sky-400" />
-              <h2 className="text-2xl font-bold">Agent Configuration</h2>
-            </div>
+    <div className="h-full flex">
+      <div className="w-1/2 p-6 overflow-y-auto border-r border-white/10">
+        <div className="max-w-md mx-auto space-y-8">
+          <div className="flex items-center gap-2">
+            <Bot className="w-6 h-6 text-sky-400" />
+            <h2 className="text-2xl font-bold">Agent Configuration</h2>
+          </div>
 
-            {/* Basic Information */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-sky-400">
-                Basic Information
-              </h3>
-              <div>
-                <Label htmlFor="language">Language</Label>
-                <select
-                  id="language"
-                  value={aiSuggestedConfig.language || agentConfig.language}
-                  onChange={(e) =>
-                    setAgentConfig((prev) => ({
-                      ...prev,
-                      language: e.target.value,
-                    }))
-                  }
-                  className="w-full mt-1 bg-white/5 border-white/10 rounded-md p-2 text-white"
+          {/* Basic Information */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-sky-400">
+              Basic Information
+            </h3>
+            <div>
+              <Label htmlFor="language">Language</Label>
+              <select
+                id="language"
+                value={aiSuggestedConfig.language || agentConfig.language}
+                onChange={(e) =>
+                  setAgentConfig((prev) => ({
+                    ...prev,
+                    language: e.target.value,
+                  }))
+                }
+                className="w-full mt-1 bg-white/5 border-white/10 rounded-md p-2 text-white"
+              >
+                <option value="en">English</option>
+                <option value="ko">한국어</option>
+                <option value="ja">日本語</option>
+                <option value="zh">中文</option>
+                <option value="es">Español</option>
+                <option value="fr">Français</option>
+                <option value="de">Deutsch</option>
+              </select>
+            </div>
+            <div>
+              <Label htmlFor="name">Agent Name</Label>
+              <Input
+                id="name"
+                value={aiSuggestedConfig.name}
+                onChange={(e) =>
+                  setAgentConfig((prev) => ({
+                    ...prev,
+                    name: e.target.value,
+                  }))
+                }
+                className="mt-1 bg-white/5 border-white/10"
+                placeholder="Enter agent name..."
+              />
+            </div>
+            <div>
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                value={aiSuggestedConfig.description}
+                onChange={(e) =>
+                  setAgentConfig((prev) => ({
+                    ...prev,
+                    description: e.target.value,
+                  }))
+                }
+                className="mt-1 bg-white/5 border-white/10"
+                placeholder="Describe your agent's purpose..."
+              />
+            </div>
+          </div>
+
+          {/* Knowledge Base */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-sky-400 flex items-center gap-2">
+              <FileText className="w-5 h-5" />
+              Knowledge Base
+            </h3>
+            <div className="space-y-2">
+              {(aiSuggestedConfig.knowledgeBase || []).map((knowledge, index) => (
+                <div
+                  key={index}
+                  className="flex items-start gap-2 bg-white/5 p-2 rounded-lg"
                 >
-                  <option value="en">English</option>
-                  <option value="ko">한국어</option>
-                  <option value="ja">日本語</option>
-                  <option value="zh">中文</option>
-                  <option value="es">Español</option>
-                  <option value="fr">Français</option>
-                  <option value="de">Deutsch</option>
-                </select>
-              </div>
-              <div>
-                <Label htmlFor="name">Agent Name</Label>
+                  <div className="flex-1 text-sm">{knowledge}</div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeKnowledgeBase(index)}
+                    className="h-8 w-8 text-red-400 hover:text-red-500"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+              <div className="flex gap-2">
                 <Input
-                  id="name"
-                  value={aiSuggestedConfig.name}
-                  onChange={(e) =>
-                    setAgentConfig((prev) => ({
-                      ...prev,
-                      name: e.target.value,
-                    }))
-                  }
-                  className="mt-1 bg-white/5 border-white/10"
-                  placeholder="Enter agent name..."
+                  value={newKnowledge}
+                  onChange={(e) => setNewKnowledge(e.target.value)}
+                  placeholder="Add documentation URL or paste text..."
+                  className="bg-white/5 border-white/10"
                 />
-              </div>
-              <div>
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={aiSuggestedConfig.description}
-                  onChange={(e) =>
-                    setAgentConfig((prev) => ({
-                      ...prev,
-                      description: e.target.value,
-                    }))
-                  }
-                  className="mt-1 bg-white/5 border-white/10"
-                  placeholder="Describe your agent's purpose..."
-                />
+                <Button
+                  onClick={addKnowledgeBase}
+                  disabled={!newKnowledge.trim()}
+                  size="icon"
+                  className="bg-sky-500 hover:bg-sky-600"
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
               </div>
             </div>
+          </div>
 
-            {/* Knowledge Base */}
+          {/* Tools */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-sky-400 flex items-center gap-2">
+              <Tool className="w-5 h-5" />
+              Available Tools
+            </h3>
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-sky-400 flex items-center gap-2">
-                <FileText className="w-5 h-5" />
-                Knowledge Base
-              </h3>
-              <div className="space-y-2">
-                {(aiSuggestedConfig.knowledgeBase || []).map((knowledge, index) => (
-                  <div
-                    key={index}
-                    className="flex items-start gap-2 bg-white/5 p-2 rounded-lg"
-                  >
-                    <div className="flex-1 text-sm">{knowledge}</div>
+              {(aiSuggestedConfig.tools || []).map((tool, index) => (
+                <div
+                  key={index}
+                  className="bg-white/5 p-3 rounded-lg space-y-2"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="font-medium">{tool.name}</div>
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => removeKnowledgeBase(index)}
+                      onClick={() => removeTool(index)}
                       className="h-8 w-8 text-red-400 hover:text-red-500"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
-                ))}
-                <div className="flex gap-2">
+                  <div className="text-sm text-gray-400">
+                    {tool.description}
+                  </div>
+                  <div className="text-xs text-gray-500 font-mono">
+                    {tool.parameters}
+                  </div>
+                </div>
+              ))}
+              <Card className="bg-white/5 border-white/10">
+                <div className="p-3 space-y-3">
                   <Input
-                    value={newKnowledge}
-                    onChange={(e) => setNewKnowledge(e.target.value)}
-                    placeholder="Add documentation URL or paste text..."
+                    value={newTool.name}
+                    onChange={(e) =>
+                      setNewTool((prev) => ({
+                        ...prev,
+                        name: e.target.value,
+                      }))
+                    }
+                    placeholder="Tool name..."
                     className="bg-white/5 border-white/10"
                   />
+                  <Textarea
+                    value={newTool.description}
+                    onChange={(e) =>
+                      setNewTool((prev) => ({
+                        ...prev,
+                        description: e.target.value,
+                      }))
+                    }
+                    placeholder="Tool description..."
+                    className="bg-white/5 border-white/10"
+                  />
+                  <Textarea
+                    value={newTool.parameters}
+                    onChange={(e) =>
+                      setNewTool((prev) => ({
+                        ...prev,
+                        parameters: e.target.value,
+                      }))
+                    }
+                    placeholder="Parameters (JSON)..."
+                    className="bg-white/5 border-white/10 font-mono text-sm"
+                  />
                   <Button
-                    onClick={addKnowledgeBase}
-                    disabled={!newKnowledge.trim()}
-                    size="icon"
-                    className="bg-sky-500 hover:bg-sky-600"
+                    onClick={addTool}
+                    disabled={!newTool.name || !newTool.description}
+                    className="w-full bg-sky-500 hover:bg-sky-600"
                   >
-                    <Plus className="h-4 w-4" />
+                    Add Tool
+                    <Plus className="ml-2 h-4 w-4" />
                   </Button>
                 </div>
-              </div>
+              </Card>
             </div>
-
-            {/* Tools */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-sky-400 flex items-center gap-2">
-                <Tool className="w-5 h-5" />
-                Available Tools
-              </h3>
-              <div className="space-y-4">
-                {(aiSuggestedConfig.tools || []).map((tool, index) => (
-                  <div
-                    key={index}
-                    className="bg-white/5 p-3 rounded-lg space-y-2"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="font-medium">{tool.name}</div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeTool(index)}
-                        className="h-8 w-8 text-red-400 hover:text-red-500"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <div className="text-sm text-gray-400">
-                      {tool.description}
-                    </div>
-                    <div className="text-xs text-gray-500 font-mono">
-                      {tool.parameters}
-                    </div>
-                  </div>
-                ))}
-                <Card className="bg-white/5 border-white/10">
-                  <div className="p-3 space-y-3">
-                    <Input
-                      value={newTool.name}
-                      onChange={(e) =>
-                        setNewTool((prev) => ({
-                          ...prev,
-                          name: e.target.value,
-                        }))
-                      }
-                      placeholder="Tool name..."
-                      className="bg-white/5 border-white/10"
-                    />
-                    <Textarea
-                      value={newTool.description}
-                      onChange={(e) =>
-                        setNewTool((prev) => ({
-                          ...prev,
-                          description: e.target.value,
-                        }))
-                      }
-                      placeholder="Tool description..."
-                      className="bg-white/5 border-white/10"
-                    />
-                    <Textarea
-                      value={newTool.parameters}
-                      onChange={(e) =>
-                        setNewTool((prev) => ({
-                          ...prev,
-                          parameters: e.target.value,
-                        }))
-                      }
-                      placeholder="Parameters (JSON)..."
-                      className="bg-white/5 border-white/10 font-mono text-sm"
-                    />
-                    <Button
-                      onClick={addTool}
-                      disabled={!newTool.name || !newTool.description}
-                      className="w-full bg-sky-500 hover:bg-sky-600"
-                    >
-                      Add Tool
-                      <Plus className="ml-2 h-4 w-4" />
-                    </Button>
-                  </div>
-                </Card>
-              </div>
-            </div>
-
-            {/* Voice Configuration */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-sky-400 flex items-center gap-2">
-                <MessageSquare className="w-5 h-5" />
-                Voice Configuration
-              </h3>
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="voiceType">Voice Type</Label>
-                  <Input
-                    id="voiceType"
-                    value={aiSuggestedConfig.voiceConfig?.type}
-                    onChange={(e) =>
-                      setAgentConfig((prev) => ({
-                        ...prev,
-                        voiceConfig: {
-                          ...prev.voiceConfig,
-                          type: e.target.value,
-                        },
-                      }))
-                    }
-                    className="mt-1 bg-white/5 border-white/10"
-                    placeholder="e.g., Professional Female, Friendly Male..."
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="voiceStyle">Speaking Style</Label>
-                  <Input
-                    id="voiceStyle"
-                    value={aiSuggestedConfig.voiceConfig?.style}
-                    onChange={(e) =>
-                      setAgentConfig((prev) => ({
-                        ...prev,
-                        voiceConfig: {
-                          ...prev.voiceConfig,
-                          style: e.target.value,
-                        },
-                      }))
-                    }
-                    className="mt-1 bg-white/5 border-white/10"
-                    placeholder="e.g., Conversational, Professional..."
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* AI 제안 설정 표시 */}
-            <AISuggestions />
           </div>
+
+          {/* Voice Configuration */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-sky-400 flex items-center gap-2">
+              <MessageSquare className="w-5 h-5" />
+              Voice Configuration
+            </h3>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="voiceType">Voice Type</Label>
+                <Input
+                  id="voiceType"
+                  value={aiSuggestedConfig.voiceConfig?.type}
+                  onChange={(e) =>
+                    setAgentConfig((prev) => ({
+                      ...prev,
+                      voiceConfig: {
+                        ...prev.voiceConfig,
+                        type: e.target.value,
+                      },
+                    }))
+                  }
+                  className="mt-1 bg-white/5 border-white/10"
+                  placeholder="e.g., Professional Female, Friendly Male..."
+                />
+              </div>
+              <div>
+                <Label htmlFor="voiceStyle">Speaking Style</Label>
+                <Input
+                  id="voiceStyle"
+                  value={aiSuggestedConfig.voiceConfig?.style}
+                  onChange={(e) =>
+                    setAgentConfig((prev) => ({
+                      ...prev,
+                      voiceConfig: {
+                        ...prev.voiceConfig,
+                        style: e.target.value,
+                      },
+                    }))
+                  }
+                  className="mt-1 bg-white/5 border-white/10"
+                  placeholder="e.g., Conversational, Professional..."
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* AI 제안 설정 표시 */}
+          <AISuggestions />
+        </div>
+      </div>
+
+      {/* Right Panel - Chat */}
+      <div className="w-1/2 p-6 flex flex-col">
+        <div className="flex justify-between items-center mb-6">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-sky-400" />
+            <h2 className="text-xl font-bold">AI Assistant</h2>
+          </div>
+          <Button variant="ghost" size="icon" onClick={() => {}}>
+            <X className="h-6 w-6" />
+          </Button>
         </div>
 
-        {/* Right Panel - Chat */}
-        <div className="w-1/2 p-6 flex flex-col">
-          <div className="flex justify-between items-center mb-6">
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-sky-400" />
-              <h2 className="text-xl font-bold">AI Assistant</h2>
+        {/* Chat Messages */}
+        <div
+          ref={chatContainerRef}
+          className="flex-1 overflow-y-auto space-y-4 mb-4"
+        >
+          {messages.map((message, index) => (
+            <div
+              key={index}
+              className={`flex ${
+                message.role === "assistant" ? "justify-start" : "justify-end"
+              }`}
+            >
+              <Card
+                className={`p-4 max-w-[80%] ${
+                  message.role === "assistant"
+                    ? "bg-sky-900/50 border-sky-500/20 text-white"
+                    : "bg-sky-500 text-white"
+                }`}
+              >
+                {message.content}
+              </Card>
             </div>
-            <Button variant="ghost" size="icon" onClick={() => {}}>
-              <X className="h-6 w-6" />
+          ))}
+        </div>
+
+        {/* Input Area */}
+        <div className="flex items-end gap-2">
+          <Textarea
+            value={inputMessage}
+            onChange={(e) => setInputMessage(e.target.value)}
+            onKeyDown={handleKeyPress}
+            placeholder="Type your message..."
+            className="flex-1 min-h-[80px] max-h-[160px] bg-white/5 border-white/10"
+          />
+          <div className="flex flex-col gap-2">
+            <Button
+              size="icon"
+              className={`rounded-full ${
+                isListening
+                  ? "bg-red-500 hover:bg-red-600"
+                  : "bg-sky-500 hover:bg-sky-600"
+              }`}
+            >
+              {isListening ? (
+                <Pause className="h-4 w-4" />
+              ) : (
+                <Mic className="h-4 w-4" />
+              )}
             </Button>
-          </div>
-
-          {/* Chat Messages */}
-          <div
-            ref={chatContainerRef}
-            className="flex-1 overflow-y-auto space-y-4 mb-4"
-          >
-            {messages.map((message, index) => (
-              <div
-                key={index}
-                className={`flex ${
-                  message.role === "assistant" ? "justify-start" : "justify-end"
-                }`}
-              >
-                <Card
-                  className={`p-4 max-w-[80%] ${
-                    message.role === "assistant"
-                      ? "bg-sky-900/50 border-sky-500/20 text-white"
-                      : "bg-sky-500 text-white"
-                  }`}
-                >
-                  {message.content}
-                </Card>
-              </div>
-            ))}
-          </div>
-
-          {/* Input Area */}
-          <div className="flex items-end gap-2">
-            <Textarea
-              value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
-              onKeyDown={handleKeyPress}
-              placeholder="Type your message..."
-              className="flex-1 min-h-[80px] max-h-[160px] bg-white/5 border-white/10"
-            />
-            <div className="flex flex-col gap-2">
-              <Button
-                size="icon"
-                className={`rounded-full ${
-                  isListening
-                    ? "bg-red-500 hover:bg-red-600"
-                    : "bg-sky-500 hover:bg-sky-600"
-                }`}
-              >
-                {isListening ? (
-                  <Pause className="h-4 w-4" />
-                ) : (
-                  <Mic className="h-4 w-4" />
-                )}
-              </Button>
-              <Button
-                size="icon"
-                className="rounded-full bg-sky-500 hover:bg-sky-600"
-                disabled={!inputMessage.trim()}
-                onClick={handleSendMessage}
-              >
-                <Send className="h-4 w-4" />
-              </Button>
-            </div>
+            <Button
+              size="icon"
+              className="rounded-full bg-sky-500 hover:bg-sky-600"
+              disabled={!inputMessage.trim()}
+              onClick={handleSendMessage}
+            >
+              <Send className="h-4 w-4" />
+            </Button>
           </div>
         </div>
       </div>

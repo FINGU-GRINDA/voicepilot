@@ -2,7 +2,7 @@
 
 import { useConversation } from "@11labs/react";
 import { useSearchParams } from "next/navigation";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { Send, Mic, Pause, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,7 +13,7 @@ interface Message {
   content: string;
 }
 
-export default function TestPage() {
+function TestPageContent() {
   const searchParams = useSearchParams();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState("");
@@ -40,31 +40,31 @@ export default function TestPage() {
 
   useEffect(() => {
     // 세션 시작
-    startConversationSession();
+    const startSession = async () => {
+      try {
+        await navigator.mediaDevices.getUserMedia({ audio: true });
+        await conversation.startSession({
+          agentId: process.env.NEXT_PUBLIC_AGENT_ID,
+          overrides: {
+            agent: {
+              prompt: {
+                prompt: config?.systemPrompt || "",
+              },
+              firstMessage: config?.welcomeMessage || "Hello! How can I help you today?",
+              language: config?.language || "en",
+            },
+          },
+        });
+      } catch (error) {
+        console.error("Failed to start conversation:", error);
+      }
+    };
+
+    startSession();
     return () => {
       conversation.endSession();
     };
-  }, []);
-
-  const startConversationSession = async () => {
-    try {
-      await navigator.mediaDevices.getUserMedia({ audio: true });
-      await conversation.startSession({
-        agentId: process.env.NEXT_PUBLIC_AGENT_ID,
-        overrides: {
-          agent: {
-            prompt: {
-              prompt: config?.systemPrompt || "",
-            },
-            firstMessage: config?.welcomeMessage || "Hello! How can I help you today?",
-            language: config?.language || "en",
-          },
-        },
-      });
-    } catch (error) {
-      console.error("Failed to start conversation:", error);
-    }
-  };
+  }, [conversation, config]);
 
   const handleSendMessage = async () => {
     if (!inputMessage.trim()) return;
@@ -138,5 +138,19 @@ export default function TestPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function TestPage() {
+  return (
+    <Suspense fallback={
+      <div className="fixed inset-0 bg-gradient-to-b from-sky-900 to-black text-white p-6">
+        <div className="max-w-3xl mx-auto h-full flex items-center justify-center">
+          <p>Loading...</p>
+        </div>
+      </div>
+    }>
+      <TestPageContent />
+    </Suspense>
   );
 } 
