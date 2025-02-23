@@ -48,7 +48,12 @@ export default function Page() {
   };
 
   const handleButtonClick = () => {
+    if (prompt.trim() === "") {
+      alert("Please enter a prompt before clicking the button.");
+      return;
+    }
     const queryString = new URLSearchParams({ prompt }).toString();
+
     router.push(`/builder?${queryString}`);
   };
 
