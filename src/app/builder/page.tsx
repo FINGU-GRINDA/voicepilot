@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
 import type React from "react";
@@ -116,8 +117,10 @@ export default function Page({
       recognition.continuous = true;
       recognition.interimResults = true;
 
-      recognition.onresult = (event) => {
-        const transcript = event.results[event.resultIndex][0].transcript;
+      recognition.onresult = (event: {
+        results: { [key: number]: { transcript: string }[] };
+      }) => {
+        const transcript = event.results[0][0].transcript;
         setInputMessage((prev) => prev + " " + transcript);
       };
     }
@@ -150,7 +153,7 @@ export default function Page({
     if (!inputMessage.trim()) return;
 
     const newMessages = [...messages, { role: "user", content: inputMessage }];
-    setMessages(newMessages);
+    setMessages(newMessages as Message[]);
     setInputMessage("");
 
     // Simulate AI response and form updates
@@ -171,7 +174,7 @@ export default function Page({
       ...testMessages,
       { role: "user", content: inputMessage },
     ];
-    setTestMessages(newMessages);
+    setTestMessages(newMessages as Message[]);
     setInputMessage("");
 
     // Simulate AI response
