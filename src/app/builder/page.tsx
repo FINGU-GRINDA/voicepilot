@@ -292,7 +292,7 @@ ${messages.map(m => `${m.role}: ${m.content}`).join('\n')}`
       
       setConfigWithGPTOnCustomerMessage(initialPrompt);
     }
-  }, [searchParams, setConfigWithGPTOnCustomerMessage]);
+  }, []); // searchParams와 setConfigWithGPTOnCustomerMessage를 의존성 배열에서 제거
 
   // Knowledge Base 관련 함수들 수정
   const addKnowledgeBase = () => {
@@ -362,8 +362,14 @@ ${messages.map(m => `${m.role}: ${m.content}`).join('\n')}`
     };
     setMessages(prev => [...prev, newMessage]);
     
+    // Eleven Labs conversation에 메시지 전송
+    await conversation.sendMessage(inputMessage);
+    
     // GPT 설정 업데이트 실행
     await setConfigWithGPTOnCustomerMessage();
+    
+    // 입력창 초기화
+    setInputMessage('');
   };
 
   // Enter 키 핸들러 추가

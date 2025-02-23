@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { createJSONStorage } from 'zustand/middleware';
 
 interface Tool {
   name: string;
@@ -78,6 +79,7 @@ export const useConfigStore = create(
     }),
     {
       name: 'agent-config-storage',
+      storage: createJSONStorage(() => sessionStorage),
     }
   )
 ); 
