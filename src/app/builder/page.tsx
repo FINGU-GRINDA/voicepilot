@@ -71,6 +71,7 @@ function BuilderContent() {
   const [messages, setMessages] = useState<Message[]>([]); // 채팅 메시지 저장
   const [inputMessage, setInputMessage] = useState(""); // 사용자 입력 메시지
   const [isListening, setIsListening] = useState(false); // 음성 입력 상태
+  const [isClient, setIsClient] = useState(false);
   const [newKnowledge, setNewKnowledge] = useState("");
   const [newTool, setNewTool] = useState<Tool>({
     name: "",
@@ -271,6 +272,45 @@ ${messages.map(m => `${m.role}: ${m.content}`).join('\n')}`
     preferHeadphonesForIosDevices: true,
   });
 
+  // 세션 시작 함수를 useCallback으로 래핑
+  const startSession = useCallback(async () => {
+    try {
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+      await conversation.startSession({
+        agentId: process.env.NEXT_PUBLIC_AGENT_ID,
+        overrides: {
+          agent: {
+            prompt: {
+              prompt: "You are a sophisticated Voice AI assistant designed to help users configure their ideal voice AI agent. Guide the conversation by asking one short question at a time, ensuring clarity and confirmation before proceeding to the next step.",
+            },
+            firstMessage: "Hello! For what purpose do you plan to use this voice AI assistant?",
+            language: "en",
+          },
+        },
+      });
+    } catch (error) {
+      console.error("Failed to start conversation:", error);
+    }
+  }, [conversation]);
+
+  // 세션 종료 함수를 useCallback으로 래핑
+  const stopSession = useCallback(async () => {
+    await conversation.endSession();
+  }, [conversation]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    if (mounted) {
+      startSession();
+    }
+
+    return () => {
+      mounted = false;
+      stopSession();
+    };
+  }, []); // 빈 의존성 배열
+
   useEffect(() => {
     setIsClient(true);
   }, []);
@@ -298,42 +338,6 @@ ${messages.map(m => `${m.role}: ${m.content}`).join('\n')}`
       setConfigWithGPTOnCustomerMessage(initialPrompt);
     }
   }, [searchParams, setConfigWithGPTOnCustomerMessage]);
-
-  // Move these functions inside useEffect or wrap them in useCallback
-  useEffect(() => {
-    // Define the functions inside useEffect to avoid dependency issues
-    const startSession = async () => {
-      try {
-        await navigator.mediaDevices.getUserMedia({ audio: true });
-        await conversation.startSession({
-          agentId: process.env.NEXT_PUBLIC_AGENT_ID,
-          overrides: {
-            agent: {
-              prompt: {
-                prompt: "You are a sophisticated Voice AI assistant designed to help users configure their ideal voice AI agent. Guide the conversation by asking one short question at a time, ensuring clarity and confirmation before proceeding to the next step. You are a sophisticated Voice AI assistant designed to help users configure their ideal voice AI agent. Guide the conversation by asking one short question at a time, ensuring clarity and confirmation before proceeding to the next step. You are a sophisticated Voice AI assistant designed to help users configure their ideal voice AI agent. Guide the conversation by asking one short question at a time, ensuring clarity and confirmation before proceeding to the next step.",
-              },
-              firstMessage: "Hello! For what purpose do you plan to use this voice AI assistant?",
-              language: "en",
-            },
-          },
-        });
-      } catch (error) {
-        console.error("Failed to start conversation:", error);
-      }
-    };
-
-    const stopSession = async () => {
-      await conversation.endSession();
-    };
-
-    // Start session on mount
-    startSession();
-
-    // Clean up on unmount
-    return () => {
-      stopSession();
-    };
-  }, [conversation]); // Add conversation as dependency
 
   const addKnowledgeBase = () => {
     if (newKnowledge.trim()) {
