@@ -246,7 +246,7 @@ export default function Page() {
       const gptMessages: Message[] = [
         {
           role: 'system',
-          content: `You are an AI configuration assistant. Analyze the conversation history and current AI suggested configuration to extract relevant information. Prioritize information from the most recent user messages over existing configurations. Return a complete JSON object that includes all configuration fields.
+          content: `You are an AI configuration assistant. Based on the conversation history, help configure an AI agent. Analyze the conversation and current AI suggested configuration to extract relevant information. Return a complete JSON object that includes all configuration fields.
 
 Current AI suggested configuration:
 ${JSON.stringify(aiSuggestedConfig, null, 2)}
@@ -278,7 +278,10 @@ Important:
 3. For fields not explicitly discussed in the conversation:
    - Use values from the current AI suggested configuration if available
    - Use reasonable defaults based on the context if no existing value
-4. Ensure the configuration is complete and coherent`
+4. Ensure the configuration is complete and coherent
+
+Previous conversation history:
+${messages.map(m => `${m.role}: ${m.content}`).join('\n')}`
         },
         ...messages,
         { role: 'user', content: message }
