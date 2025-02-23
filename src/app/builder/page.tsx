@@ -109,67 +109,32 @@ function BuilderContent() {
     }
 
     try {
-      const gptMessages: Message[] = [
-        {
-          role: 'system',
-          content: `You are an AI configuration assistant. Based on the conversation history, help configure an AI agent. Analyze the conversation and current AI suggested configuration to extract relevant information. Return a complete JSON object that includes all configuration fields.
-
-Current AI suggested configuration:
-${JSON.stringify(aiSuggestedConfig, null, 2)}
-
-Return a JSON object that follows this structure, including all fields:
-{
-  "name": "string",
-  "description": "string",
-  "knowledgeBase": ["string"],
-  "systemPrompt": "string",
-  "tools": [{
-    "name": "string",
-    "description": "string",
-    "parameters": "string"
-  }],
-  "voiceConfig": {
-    "type": "string",
-    "speed": number,
-    "style": "string"
-  },
-  "welcomeMessage": "string",
-  "fallbackMessage": "string",
-  "language": "string"
-}
-
-Important:
-1. Include ALL fields in the response, even if they haven't changed
-2. Prioritize information from user messages over existing configuration
-3. For fields not explicitly discussed in the conversation:
-   - Use values from the current AI suggested configuration if available
-   - Use reasonable defaults based on the context if no existing value
-4. Ensure the configuration is complete and coherent
-
-Previous conversation history:
-${messages.map(m => `${m.role}: ${m.content}`).join('\n')}`
-        },
-        ...messages,
-        { role: 'user', content: message }
-      ];
-
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      const response = await fetch('/api/generate-config', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.NEXT_PUBLIC_OPENAI_API_KEY}`
         },
         body: JSON.stringify({
-          model: 'gpt-4o',
-          messages: gptMessages,
-          temperature: 0.7,
-          max_tokens: 1000,
-          response_format: { type: "json_object" }
+          messages: [
+            ...messages,
+            { role: 'user', content: message }
+          ],
+          currentConfig: aiSuggestedConfig
         })
       });
 
+      console.log('response', response);
+
+      // Enhanced error handling
       if (!response.ok) {
-        throw new Error(`API request failed: ${response.statusText}`);
+        const errorData = await response.text();
+        console.error('API Error:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData
+        });
+        // Handle the error gracefully without throwing
+        return;
       }
 
       const data = await response.json();
@@ -220,9 +185,9 @@ ${messages.map(m => `${m.role}: ${m.content}`).join('\n')}`
       updateAiSuggestedConfig(validatedConfig);
 
     } catch (error) {
-      console.error('Error calling GPT API:', error);
+      console.error('Error generating configuration:', error);
     }
-  }, []);
+  }, [messages, aiSuggestedConfig, inputMessage, updateAiSuggestedConfig]);
 
   // Eleven Labs 음성 대화 훅 설정
   const conversation = useConversation({
