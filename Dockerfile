@@ -18,7 +18,7 @@ FROM node:18-alpine AS runner
 
 WORKDIR /app
 
-ENV NODE_ENV production
+ENV NODE_ENV=production
 
 # Copy necessary files from builder
 COPY --from=builder /app/public ./public
