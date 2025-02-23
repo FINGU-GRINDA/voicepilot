@@ -6,30 +6,11 @@ import { Mic, Plane, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useRouter } from "next/navigation";
-import type { Metadata } from 'next'
 
 declare global {
   interface Window {
     SpeechRecognition: any;
     webkitSpeechRecognition: any;
-  }
-}
-
-export const metadata: Metadata = {
-  title: 'Voice AI Agent Builder & Tester',
-  description: 'Build, fine-tune, and test your Voice AI Agent with ElevenLabs. Customize agent behavior through real-time conversation and form configuration.',
-  keywords: [
-    'Voice AI',
-    'Conversational AI',
-    'ElevenLabs',
-    'AI Agent Builder',
-    'Voice Assistant',
-    'AI Testing Platform'
-  ],
-  openGraph: {
-    title: 'Voice AI Agent Builder & Tester',
-    description: 'Interactive platform for building and testing Voice AI Agents with ElevenLabs technology',
-    type: 'website',
   }
 }
 
@@ -41,7 +22,7 @@ export default function Page() {
   const handleStartSpeech = () => {
     const recognition = new (window.SpeechRecognition ||
       window.webkitSpeechRecognition)();
-    recognition.lang = "en-US"; 
+    recognition.lang = "en-US";
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
 
