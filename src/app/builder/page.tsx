@@ -263,12 +263,12 @@ ${messages.map(m => `${m.role}: ${m.content}`).join('\n')}`
     } catch (error) {
       console.error("Failed to start conversation:", error);
     }
-  }, [conversation]);
+  }, []);
 
   // 세션 종료 함수를 useCallback으로 래핑
   const stopSession = useCallback(async () => {
     await conversation.endSession();
-  }, [conversation]);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
