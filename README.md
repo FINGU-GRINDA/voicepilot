@@ -1,5 +1,7 @@
 # VoicePilot
 
+![VoicePilot Thumbnail](https://ibb.co/cXcvRdY4)
+
 VoicePilot is a cutting-edge, no-code Voice AI Agent builder that empowers users to create their own voice-powered agents in minutes. Built with Next.js and integrated with ElevenLabs APIs for advanced voice recognition and natural language processing, VoicePilot is designed for both developers and non-technical users who want to leverage voice technology without writing a single line of code.
 
 ## Table of Contents
