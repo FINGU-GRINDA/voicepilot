@@ -25,7 +25,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 
 // 주요 인터페이스 정의
 interface Message {
@@ -131,6 +131,8 @@ export default function Page() {
     fallbackMessage: '',
     language: ''
   });
+
+  const router = useRouter();
 
   useEffect(() => {
     setIsClient(true);
@@ -390,6 +392,12 @@ ${messages.map(m => `${m.role}: ${m.content}`).join('\n')}`
   const AISuggestions = () => {
     if (Object.keys(aiSuggestedConfig).length === 0) return null;
 
+    const handleTestConfig = () => {
+      // URL 파라미터로 설정을 전달
+      const configParam = encodeURIComponent(JSON.stringify(aiSuggestedConfig));
+      router.push(`/test?config=${configParam}`);
+    };
+
     return (
       <div className="mt-8 space-y-4">
         <h3 className="text-lg font-semibold text-sky-400 flex items-center gap-2">
@@ -410,12 +418,14 @@ ${messages.map(m => `${m.role}: ${m.content}`).join('\n')}`
             </div>
           )}
           {/* 다른 설정값들도 필요에 따라 표시 */}
-          <Button 
-            className="mt-4 bg-sky-500 hover:bg-sky-600"
-            onClick={() => setAgentConfig(prev => ({...prev, ...aiSuggestedConfig}))}
-          >
-            Apply Suggestions
-          </Button>
+          <div className="flex gap-2 mt-4">
+            <Button 
+              className="bg-green-500 hover:bg-green-600"
+              onClick={handleTestConfig}
+            >
+              Test Configuration
+            </Button>
+          </div>
         </Card>
       </div>
     );
