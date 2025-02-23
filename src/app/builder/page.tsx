@@ -223,7 +223,7 @@ ${messages.map(m => `${m.role}: ${m.content}`).join('\n')}`
     } catch (error) {
       console.error('Error calling GPT API:', error);
     }
-  }, [inputMessage, updateAiSuggestedConfig]);
+  }, []);
 
   // Eleven Labs 음성 대화 훅 설정
   const conversation = useConversation({
