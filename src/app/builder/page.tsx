@@ -1,5 +1,5 @@
 "use client";
-
+import { useConversation } from '@11labs/react';
 import type React from "react";
 import { useState, useEffect, useRef } from "react";
 import {
@@ -54,6 +54,7 @@ interface AgentConfig {
   };
   welcomeMessage: string;
   fallbackMessage: string;
+  language: string;
 }
 
 export default function Page({
@@ -61,10 +62,7 @@ export default function Page({
   initialDescription,
 }: VoiceAgentBuilderProps) {
   const [messages, setMessages] = useState<Message[]>([
-    {
-      role: "assistant",
-      content: `Hi! I've created an initial configuration for your Voice AI Agent based on your input. Let's review and refine it together. We'll start with the agent's name and description. Does this look good to you?`,
-    },
+  
   ]);
   const [inputMessage, setInputMessage] = useState("");
   const [isListening, setIsListening] = useState(false);
@@ -91,6 +89,7 @@ export default function Page({
     welcomeMessage: "Hello! How can I assist you today?",
     fallbackMessage:
       "I'm sorry, I didn't quite understand that. Could you please rephrase your question?",
+    language: "en",
   });
   const [isTestMode, setIsTestMode] = useState(false);
   const [newKnowledge, setNewKnowledge] = useState("");
@@ -102,6 +101,27 @@ export default function Page({
   const [testMessages, setTestMessages] = useState<Message[]>([]);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [volume, setVolume] = useState(50);
+  const [isClient, setIsClient] = useState(false);
+  
+  const conversation = useConversation({
+    onConnect: () => console.log('Connected'),
+    onDisconnect: () => console.log('Disconnected'),
+    onMessage: ({ message, source }) => {
+      console.log('Message:', message, 'Source:', source);
+      const messageObj = { 
+        role: source === 'user' ? 'user' : 'assistant', 
+        content: message 
+      };
+      
+      if (isTestMode) {
+        setTestMessages(prev => [...prev, messageObj]);
+      } else {
+        setMessages(prev => [...prev, messageObj]);
+      }
+    },
+    onError: (error: Error) => console.error('Error:', error),
+    preferHeadphonesForIosDevices: true,
+  });
 
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const testChatContainerRef = useRef<HTMLDivElement>(null);
@@ -137,6 +157,10 @@ export default function Page({
     }
   }, []);
 
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   const toggleListening = () => {
     if (isListening) {
       recognitionRef.current?.stop();
@@ -153,37 +177,19 @@ export default function Page({
     setMessages(newMessages);
     setInputMessage("");
 
-    // Simulate AI response and form updates
-    setTimeout(() => {
-      const response =
-        "I've updated the configuration based on your input. Is there anything else you'd like to modify?";
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: response },
-      ]);
-    }, 1000);
+    // conversation을 통해 메시지 전송
+    await conversation.sendMessage(inputMessage);
   };
 
   const handleTestMessage = async () => {
     if (!inputMessage.trim()) return;
 
-    const newMessages = [
-      ...testMessages,
-      { role: "user", content: inputMessage },
-    ];
+    const newMessages = [...testMessages, { role: "user", content: inputMessage }];
     setTestMessages(newMessages);
     setInputMessage("");
 
-    // Simulate AI response
-    setTimeout(() => {
-      const response =
-        "This is a simulated response from your AI agent. In a real implementation, this would be generated based on your agent's configuration and knowledge base.";
-      setTestMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: response },
-      ]);
-      speakMessage(response);
-    }, 1000);
+    // conversation을 통해 메시지 전송
+    await conversation.sendMessage(inputMessage);
   };
 
   const speakMessage = (message: string) => {
@@ -246,13 +252,56 @@ export default function Page({
     ]);
   };
 
+  const startConversationSession = async () => {
+    try {
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+      
+      await conversation.startSession({
+        agentId: process.env.NEXT_PUBLIC_AGENT_ID,
+        overrides: {
+          agent: {
+            prompt: {
+              prompt: agentConfig.systemPrompt,
+            },
+            firstMessage: agentConfig.welcomeMessage,
+            language: agentConfig.language,
+          },
+        },
+      });
+    } catch (error) {
+      console.error('Failed to start conversation:', error);
+    }
+  };
+
+  const stopConversationSession = async () => {
+    await conversation.endSession();
+  };
+
+  // UI에 세션 컨트롤 버튼 추가
+  const SessionControls = () => (
+    <div className="flex gap-2 mb-4">
+      <Button
+        onClick={startConversationSession}
+        className="bg-green-500 hover:bg-green-600"
+      >
+        Start Session
+      </Button>
+      <Button
+        onClick={stopConversationSession}
+        className="bg-red-500 hover:bg-red-600"
+      >
+        End Session
+      </Button>
+    </div>
+  );
+
   return (
     <div className="fixed inset-0 bg-gradient-to-b from-sky-900 to-black text-white">
       <div className="h-full flex">
         {!isTestMode ? (
           <>
-            {/* Left Panel - Form */}
             <div className="w-1/2 p-6 overflow-y-auto border-r border-white/10">
+              <SessionControls />
               <div className="max-w-md mx-auto space-y-8">
                 <div className="flex items-center gap-2">
                   <Bot className="w-6 h-6 text-sky-400" />
@@ -264,6 +313,28 @@ export default function Page({
                   <h3 className="text-lg font-semibold text-sky-400">
                     Basic Information
                   </h3>
+                  <div>
+                    <Label htmlFor="language">Language</Label>
+                    <select
+                      id="language"
+                      value={agentConfig.language}
+                      onChange={(e) =>
+                        setAgentConfig((prev) => ({
+                          ...prev,
+                          language: e.target.value,
+                        }))
+                      }
+                      className="w-full mt-1 bg-white/5 border-white/10 rounded-md p-2 text-white"
+                    >
+                      <option value="en">English</option>
+                      <option value="ko">한국어</option>
+                      <option value="ja">日本語</option>
+                      <option value="zh">中文</option>
+                      <option value="es">Español</option>
+                      <option value="fr">Français</option>
+                      <option value="de">Deutsch</option>
+                    </select>
+                  </div>
                   <div>
                     <Label htmlFor="name">Agent Name</Label>
                     <Input
@@ -492,16 +563,22 @@ export default function Page({
                 className="flex-1 overflow-y-auto space-y-4 mb-4"
               >
                 {messages.map((message, index) => (
-                  <Card
+                  <div
                     key={index}
-                    className={`p-4 max-w-[80%] ${
-                      message.role === "assistant"
-                        ? "bg-sky-900/50 border-sky-500/20 ml-0 text-white"
-                        : "bg-sky-500 ml-auto text-white"
+                    className={`flex ${
+                      message.role === "assistant" ? "justify-start" : "justify-end"
                     }`}
                   >
-                    {message.content}
-                  </Card>
+                    <Card
+                      className={`p-4 max-w-[80%] ${
+                        message.role === "assistant"
+                          ? "bg-sky-900/50 border-sky-500/20 text-white"
+                          : "bg-sky-500 text-white"
+                      }`}
+                    >
+                      {message.content}
+                    </Card>
+                  </div>
                 ))}
               </div>
 
@@ -545,6 +622,7 @@ export default function Page({
         ) : (
           // Test Mode UI
           <div className="w-full p-6 flex flex-col">
+            <SessionControls />
             <div className="flex justify-between items-center mb-6">
               <div className="flex items-center gap-2">
                 <Bot className="w-6 h-6 text-sky-400" />
@@ -565,16 +643,22 @@ export default function Page({
               className="flex-1 overflow-y-auto space-y-4 mb-4"
             >
               {testMessages.map((message, index) => (
-                <Card
+                <div
                   key={index}
-                  className={`p-4 max-w-[80%] ${
-                    message.role === "assistant"
-                      ? "bg-sky-900/50 border-sky-500/20 ml-0 text-white"
-                      : "bg-sky-500 ml-auto text-white"
+                  className={`flex ${
+                    message.role === "assistant" ? "justify-start" : "justify-end"
                   }`}
                 >
-                  {message.content}
-                </Card>
+                  <Card
+                    className={`p-4 max-w-[80%] ${
+                      message.role === "assistant"
+                        ? "bg-sky-900/50 border-sky-500/20 text-white"
+                        : "bg-sky-500 text-white"
+                    }`}
+                  >
+                    {message.content}
+                  </Card>
+                </div>
               ))}
             </div>
 
