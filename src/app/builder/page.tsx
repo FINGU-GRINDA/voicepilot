@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 import { useConversation } from '@11labs/react';
 import type React from "react";
@@ -106,7 +107,7 @@ export default function Page({
   const conversation = useConversation({
     onConnect: () => console.log('Connected'),
     onDisconnect: () => console.log('Disconnected'),
-    onMessage: ({ message, source }) => {
+    onMessage: ({ message, source }: { message: string, source: string }) => {
       console.log('Message:', message, 'Source:', source);
       const messageObj = { 
         role: source === 'user' ? 'user' : 'assistant', 
@@ -114,9 +115,9 @@ export default function Page({
       };
       
       if (isTestMode) {
-        setTestMessages(prev => [...prev, messageObj]);
+        setTestMessages(prev => [...prev, messageObj as Message]);
       } else {
-        setMessages(prev => [...prev, messageObj]);
+        setMessages(prev => [...prev, messageObj as Message]);
       }
     },
     onError: (error: Error) => console.error('Error:', error),
@@ -125,22 +126,9 @@ export default function Page({
 
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const testChatContainerRef = useRef<HTMLDivElement>(null);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
 
   useEffect(() => {
-    if ("SpeechRecognition" in window || "webkitSpeechRecognition" in window) {
-      const SpeechRecognition =
-        window.SpeechRecognition || window.webkitSpeechRecognition;
-      const recognition = new SpeechRecognition();
-      recognitionRef.current = recognition;
-      recognition.continuous = true;
-      recognition.interimResults = true;
-
-      recognition.onresult = (event) => {
-        const transcript = event.results[event.resultIndex][0].transcript;
-        setInputMessage((prev) => prev + " " + transcript);
-      };
-    }
+    setIsClient(true);
   }, []);
 
   useEffect(() => {
@@ -157,40 +145,6 @@ export default function Page({
     }
   }, []);
 
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  const toggleListening = () => {
-    if (isListening) {
-      recognitionRef.current?.stop();
-    } else {
-      recognitionRef.current?.start();
-    }
-    setIsListening(!isListening);
-  };
-
-  const handleSendMessage = async () => {
-    if (!inputMessage.trim()) return;
-
-    const newMessages = [...messages, { role: "user", content: inputMessage }];
-    setMessages(newMessages);
-    setInputMessage("");
-
-    // conversation을 통해 메시지 전송
-    await conversation.sendMessage(inputMessage);
-  };
-
-  const handleTestMessage = async () => {
-    if (!inputMessage.trim()) return;
-
-    const newMessages = [...testMessages, { role: "user", content: inputMessage }];
-    setTestMessages(newMessages);
-    setInputMessage("");
-
-    // conversation을 통해 메시지 전송
-    await conversation.sendMessage(inputMessage);
-  };
 
   const speakMessage = (message: string) => {
     setIsSpeaking(true);
@@ -199,18 +153,6 @@ export default function Page({
     utterance.onend = () => setIsSpeaking(false);
     window.speechSynthesis.speak(utterance);
   };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      if (isTestMode) {
-        handleTestMessage();
-      } else {
-        handleSendMessage();
-      }
-    }
-  };
-
   const addKnowledgeBase = () => {
     if (newKnowledge.trim()) {
       setAgentConfig((prev) => ({
@@ -587,7 +529,7 @@ export default function Page({
                 <Textarea
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
-                  onKeyPress={handleKeyPress}
+                  // onKeyPress={handleKeyPress}
                   placeholder="Type your message..."
                   className="flex-1 min-h-[80px] max-h-[160px] bg-white/5 border-white/10"
                 />
@@ -599,7 +541,7 @@ export default function Page({
                         ? "bg-red-500 hover:bg-red-600"
                         : "bg-sky-500 hover:bg-sky-600"
                     }`}
-                    onClick={toggleListening}
+                    // onClick={toggleListening}
                   >
                     {isListening ? (
                       <Pause className="h-4 w-4" />
@@ -610,7 +552,7 @@ export default function Page({
                   <Button
                     size="icon"
                     className="rounded-full bg-sky-500 hover:bg-sky-600"
-                    onClick={handleSendMessage}
+                    // onClick={handleSendMessage}
                     disabled={!inputMessage.trim()}
                   >
                     <Send className="h-4 w-4" />
@@ -667,7 +609,7 @@ export default function Page({
               <Textarea
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
-                onKeyPress={handleKeyPress}
+                // onKeyPress={handleKeyPress}
                 placeholder="Type your message..."
                 className="flex-1 min-h-[80px] max-h-[160px] bg-white/5 border-white/10"
               />
@@ -679,7 +621,7 @@ export default function Page({
                       ? "bg-red-500 hover:bg-red-600"
                       : "bg-sky-500 hover:bg-sky-600"
                   }`}
-                  onClick={toggleListening}
+                  // onClick={toggleListening}
                 >
                   {isListening ? (
                     <Pause className="h-4 w-4" />
@@ -690,7 +632,7 @@ export default function Page({
                 <Button
                   size="icon"
                   className="rounded-full bg-sky-500 hover:bg-sky-600"
-                  onClick={handleTestMessage}
+                  // onClick={handleTestMessage}
                   disabled={!inputMessage.trim()}
                 >
                   <Send className="h-4 w-4" />
