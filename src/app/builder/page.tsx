@@ -26,6 +26,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { useSearchParams, useRouter } from "next/navigation";
+import { useConfigStore } from '@/store/configStore';
 
 // 주요 인터페이스 정의
 interface Message {
@@ -67,10 +68,26 @@ export default function Page() {
 }
 
 function BuilderContent() {
-  // 주요 상태 관리
-  const [messages, setMessages] = useState<Message[]>([]); // 채팅 메시지 저장
-  const [inputMessage, setInputMessage] = useState(""); // 사용자 입력 메시지
-  const [isListening, setIsListening] = useState(false); // 음성 입력 상태
+  const { config, aiSuggestedConfig, updateConfig, updateAiSuggestedConfig } = useConfigStore();
+  
+  // Ensure initial values are always defined
+  const safeAiConfig = {
+    name: aiSuggestedConfig.name || '',
+    description: aiSuggestedConfig.description || '',
+    knowledgeBase: aiSuggestedConfig.knowledgeBase || [],
+    tools: aiSuggestedConfig.tools || [],
+    voiceConfig: {
+      type: aiSuggestedConfig.voiceConfig?.type || '',
+      speed: aiSuggestedConfig.voiceConfig?.speed || 1,
+      style: aiSuggestedConfig.voiceConfig?.style || '',
+    },
+    language: aiSuggestedConfig.language || 'en',
+  };
+
+  // agentConfig와 aiSuggestedConfig state 제거
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [inputMessage, setInputMessage] = useState("");
+  const [isListening, setIsListening] = useState(false);
   const [isClient, setIsClient] = useState(false);
   const [newKnowledge, setNewKnowledge] = useState("");
   const [newTool, setNewTool] = useState<Tool>({
@@ -78,54 +95,12 @@ function BuilderContent() {
     description: "",
     parameters: "",
   });
-  const [agentConfig, setAgentConfig] = useState<AgentConfig>({
-    name: "Voice AI Assistant",
-    description:
-      "An intelligent voice-enabled AI assistant that provides natural and engaging conversations",
-    knowledgeBase: ["https://docs.elevenlabs.io/quickstart"],
-    systemPrompt:
-      "You are a sophisticated Voice AI assistant focused on helping users configure their ideal voice AI agent. Guide the conversation by asking these questions one at a time, waiting for the user's response before moving to the next question:\n\n1. Purpose\n- Ask: '이 음성 AI 어시스턴트를 어떤 목적으로 사용하실 계획인가요? (예: 고객 서비스, 교육, 개인 비서 등)'\n- Listen to their use case and confirm understanding\n\n2. Knowledge Base\n- Ask: '음성 AI가 어떤 정보나 지식을 가지고 있어야 하나요? 특정 분야나 주제가 있다면 알려주세요.'\n- Help them specify required knowledge domains\n\n3. Language Preferences\n- Ask: '어떤 언어로 소통하기를 원하시나요? 다국어 지원이 필요하신가요?'\n- Confirm language requirements and formality level\n\nAfter gathering these basic requirements, we can discuss more specific details about:\n- Voice characteristics (성별, 나이, 말투)\n- Communication style (격식체/비격식체, 전문성 수준)\n- Technical specifications (음성 품질, 응답 속도)\n\nRemember to:\n- Ask only one question at a time\n- Wait for user response before proceeding\n- Provide examples when needed\n- Confirm understanding before moving to next topic.",
-    tools: [
-      {
-        name: "Check Order Status",
-        description: "Retrieves the current status of a customer order",
-        parameters: '{"orderId": "string"}',
-      },
-    ],
-    voiceConfig: {
-      type: "Professional Female",
-      speed: 1,
-      style: "Friendly and Helpful",
-    },
-    welcomeMessage:
-      "Hi there! I'm your Voice AI assistant. I'm here to help and chat with you naturally. Feel free to speak or type your message - I'm listening!",
-    fallbackMessage:
-      "I didn't catch that clearly. Could you please repeat that or try typing your message instead?",
-    language: "en",
-  });
-  
-  // AI 응답으로 받은 설정을 저장할 새로운 상태
-  const [aiSuggestedConfig, setAiSuggestedConfig] = useState<Partial<AgentConfig>>({
-    name: '',
-    description: '',
-    knowledgeBase: [],
-    systemPrompt: '',
-    tools: [],
-    voiceConfig: {
-      type: '',
-      speed: 1,
-      style: ''
-    },
-    welcomeMessage: '',
-    fallbackMessage: '',
-    language: ''
-  });
 
   const router = useRouter();
   const searchParams = useSearchParams();
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
-  // setConfigWithGPTOnCustomerMessage를 여기로 이동
+  // setConfigWithGPTOnCustomerMessage 수정
   const setConfigWithGPTOnCustomerMessage = useCallback(async (messageText?: string) => {
     const message = messageText || inputMessage;
     if (!message.trim()) return;
@@ -226,9 +201,9 @@ ${messages.map(m => `${m.role}: ${m.content}`).join('\n')}`
       // voiceConfig 검증
       if (parsedConfig.voiceConfig && typeof parsedConfig.voiceConfig === 'object') {
         validatedConfig.voiceConfig = {
-          type: typeof parsedConfig.voiceConfig.type === 'string' ? parsedConfig.voiceConfig.type : agentConfig.voiceConfig.type,
-          speed: typeof parsedConfig.voiceConfig.speed === 'number' ? parsedConfig.voiceConfig.speed : agentConfig.voiceConfig.speed,
-          style: typeof parsedConfig.voiceConfig.style === 'string' ? parsedConfig.voiceConfig.style : agentConfig.voiceConfig.style
+          type: typeof parsedConfig.voiceConfig.type === 'string' ? parsedConfig.voiceConfig.type : config.voiceConfig.type,
+          speed: typeof parsedConfig.voiceConfig.speed === 'number' ? parsedConfig.voiceConfig.speed : config.voiceConfig.speed,
+          style: typeof parsedConfig.voiceConfig.style === 'string' ? parsedConfig.voiceConfig.style : config.voiceConfig.style
         };
       }
 
@@ -242,16 +217,13 @@ ${messages.map(m => `${m.role}: ${m.content}`).join('\n')}`
         );
       }
 
-      // 기존 설정과 새로운 설정을 병합
-      setAiSuggestedConfig(prev => ({
-        ...prev,
-        ...validatedConfig
-      }));
+      // 상태 업데이트 부분만 수정
+      updateAiSuggestedConfig(validatedConfig);
 
     } catch (error) {
       console.error('Error calling GPT API:', error);
     }
-  }, []);
+  }, [inputMessage, updateAiSuggestedConfig]);
 
   // Eleven Labs 음성 대화 훅 설정
   const conversation = useConversation({
@@ -339,38 +311,36 @@ ${messages.map(m => `${m.role}: ${m.content}`).join('\n')}`
     }
   }, [searchParams, setConfigWithGPTOnCustomerMessage]);
 
+  // Knowledge Base 관련 함수들 수정
   const addKnowledgeBase = () => {
     if (newKnowledge.trim()) {
-      setAgentConfig((prev) => ({
-        ...prev,
-        knowledgeBase: [...prev.knowledgeBase, newKnowledge],
-      }));
+      updateConfig({
+        knowledgeBase: [...config.knowledgeBase, newKnowledge]
+      });
       setNewKnowledge("");
     }
   };
 
   const removeKnowledgeBase = (index: number) => {
-    setAgentConfig((prev) => ({
-      ...prev,
-      knowledgeBase: prev.knowledgeBase.filter((_, i) => i !== index),
-    }));
+    updateConfig({
+      knowledgeBase: config.knowledgeBase.filter((_, i) => i !== index)
+    });
   };
 
+  // Tools 관련 함수들 수정
   const addTool = () => {
     if (newTool.name && newTool.description) {
-      setAgentConfig((prev) => ({
-        ...prev,
-        tools: [...prev.tools, newTool],
-      }));
+      updateConfig({
+        tools: [...config.tools, newTool]
+      });
       setNewTool({ name: "", description: "", parameters: "" });
     }
   };
 
   const removeTool = (index: number) => {
-    setAgentConfig((prev) => ({
-      ...prev,
-      tools: prev.tools.filter((_, i) => i !== index),
-    }));
+    updateConfig({
+      tools: config.tools.filter((_, i) => i !== index)
+    });
   };
 
   const extractJsonFromString = (text: string): Partial<AgentConfig> | null => {
@@ -417,9 +387,8 @@ ${messages.map(m => `${m.role}: ${m.content}`).join('\n')}`
     if (Object.keys(aiSuggestedConfig).length === 0) return null;
 
     const handleTestConfig = () => {
-      // URL 파라미터로 설정을 전달
-      const configParam = encodeURIComponent(JSON.stringify(aiSuggestedConfig));
-      router.push(`/test?config=${configParam}`);
+      // URL 파라미터 대신 상태 관리를 통해 설정 전달
+      router.push('/test');
     };
 
     return (
@@ -473,9 +442,9 @@ ${messages.map(m => `${m.role}: ${m.content}`).join('\n')}`
               <Label htmlFor="language">Language</Label>
               <select
                 id="language"
-                value={aiSuggestedConfig.language || agentConfig.language}
+                value={safeAiConfig.language}
                 onChange={(e) =>
-                  setAgentConfig((prev) => ({
+                  updateConfig((prev) => ({
                     ...prev,
                     language: e.target.value,
                   }))
@@ -495,9 +464,9 @@ ${messages.map(m => `${m.role}: ${m.content}`).join('\n')}`
               <Label htmlFor="name">Agent Name</Label>
               <Input
                 id="name"
-                value={aiSuggestedConfig.name}
+                value={safeAiConfig.name}
                 onChange={(e) =>
-                  setAgentConfig((prev) => ({
+                  updateConfig((prev) => ({
                     ...prev,
                     name: e.target.value,
                   }))
@@ -510,9 +479,9 @@ ${messages.map(m => `${m.role}: ${m.content}`).join('\n')}`
               <Label htmlFor="description">Description</Label>
               <Textarea
                 id="description"
-                value={aiSuggestedConfig.description}
+                value={safeAiConfig.description}
                 onChange={(e) =>
-                  setAgentConfig((prev) => ({
+                  updateConfig((prev) => ({
                     ...prev,
                     description: e.target.value,
                   }))
@@ -530,7 +499,7 @@ ${messages.map(m => `${m.role}: ${m.content}`).join('\n')}`
               Knowledge Base
             </h3>
             <div className="space-y-2">
-              {(aiSuggestedConfig.knowledgeBase || []).map((knowledge, index) => (
+              {(safeAiConfig.knowledgeBase || []).map((knowledge, index) => (
                 <div
                   key={index}
                   className="flex items-start gap-2 bg-white/5 p-2 rounded-lg"
@@ -572,7 +541,7 @@ ${messages.map(m => `${m.role}: ${m.content}`).join('\n')}`
               Available Tools
             </h3>
             <div className="space-y-4">
-              {(aiSuggestedConfig.tools || []).map((tool, index) => (
+              {(safeAiConfig.tools || []).map((tool, index) => (
                 <div
                   key={index}
                   className="bg-white/5 p-3 rounded-lg space-y-2"
@@ -601,9 +570,9 @@ ${messages.map(m => `${m.role}: ${m.content}`).join('\n')}`
                   <Input
                     value={newTool.name}
                     onChange={(e) =>
-                      setNewTool((prev) => ({
+                      setNewTool(prev => ({
                         ...prev,
-                        name: e.target.value,
+                        name: e.target.value
                       }))
                     }
                     placeholder="Tool name..."
@@ -612,9 +581,9 @@ ${messages.map(m => `${m.role}: ${m.content}`).join('\n')}`
                   <Textarea
                     value={newTool.description}
                     onChange={(e) =>
-                      setNewTool((prev) => ({
+                      setNewTool(prev => ({
                         ...prev,
-                        description: e.target.value,
+                        description: e.target.value
                       }))
                     }
                     placeholder="Tool description..."
@@ -623,9 +592,9 @@ ${messages.map(m => `${m.role}: ${m.content}`).join('\n')}`
                   <Textarea
                     value={newTool.parameters}
                     onChange={(e) =>
-                      setNewTool((prev) => ({
+                      setNewTool(prev => ({
                         ...prev,
-                        parameters: e.target.value,
+                        parameters: e.target.value
                       }))
                     }
                     placeholder="Parameters (JSON)..."
@@ -655,9 +624,9 @@ ${messages.map(m => `${m.role}: ${m.content}`).join('\n')}`
                 <Label htmlFor="voiceType">Voice Type</Label>
                 <Input
                   id="voiceType"
-                  value={aiSuggestedConfig.voiceConfig?.type}
+                  value={safeAiConfig.voiceConfig.type}
                   onChange={(e) =>
-                    setAgentConfig((prev) => ({
+                    updateConfig((prev) => ({
                       ...prev,
                       voiceConfig: {
                         ...prev.voiceConfig,
@@ -673,9 +642,9 @@ ${messages.map(m => `${m.role}: ${m.content}`).join('\n')}`
                 <Label htmlFor="voiceStyle">Speaking Style</Label>
                 <Input
                   id="voiceStyle"
-                  value={aiSuggestedConfig.voiceConfig?.style}
+                  value={safeAiConfig.voiceConfig.style}
                   onChange={(e) =>
-                    setAgentConfig((prev) => ({
+                    updateConfig((prev) => ({
                       ...prev,
                       voiceConfig: {
                         ...prev.voiceConfig,

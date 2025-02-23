@@ -1,12 +1,12 @@
 "use client";
 
 import { useConversation } from "@11labs/react";
-import { useSearchParams } from "next/navigation";
 import { useState, useEffect, useRef, Suspense } from "react";
 import { Send, Mic, Pause, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
+import { useConfigStore } from '@/store/configStore';
 
 interface Message {
   role: 'user' | 'assistant' | 'system';
@@ -14,16 +14,12 @@ interface Message {
 }
 
 function TestPageContent() {
-  const searchParams = useSearchParams();
+  const { aiSuggestedConfig } = useConfigStore();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const [isListening, setIsListening] = useState(false);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   
-  // URL에서 설정 가져오기
-  const configParam = searchParams.get('config');
-  const config = configParam ? JSON.parse(decodeURIComponent(configParam)) : null;
-
   const conversation = useConversation({
     onConnect: () => console.log('Connected'),
     onDisconnect: () => console.log('Disconnected'),
@@ -39,7 +35,6 @@ function TestPageContent() {
   });
 
   useEffect(() => {
-    // 세션 시작
     const startSession = async () => {
       try {
         await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -48,10 +43,10 @@ function TestPageContent() {
           overrides: {
             agent: {
               prompt: {
-                prompt: config?.systemPrompt || "",
+                prompt: aiSuggestedConfig.systemPrompt,
               },
-              firstMessage: config?.welcomeMessage || "Hello! How can I help you today?",
-              language: config?.language || "en",
+              firstMessage: aiSuggestedConfig.welcomeMessage,
+              language: aiSuggestedConfig.language,
             },
           },
         });
@@ -64,7 +59,7 @@ function TestPageContent() {
     return () => {
       conversation.endSession();
     };
-  }, [conversation, config]);
+  }, []);
 
   const handleSendMessage = async () => {
     if (!inputMessage.trim()) return;
