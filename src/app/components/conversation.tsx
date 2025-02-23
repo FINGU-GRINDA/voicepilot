@@ -2,13 +2,14 @@
 
 import { useConversation } from '@11labs/react';
 import { useCallback, useState } from 'react';
+import { IncomingSocketEvent } from '@11labs/client';
 
 export function Conversation() {
   const conversation = useConversation({
     onConnect: () => console.log('Connected'),
     onDisconnect: () => console.log('Disconnected'),
-    onMessage: (message) => console.log('Message:', message),
-    onError: (error) => console.error('Error:', error),
+    onMessage: (message: IncomingSocketEvent) => console.log('Message:', message),
+    onError: (error: Error) => console.error('Error:', error),
     preferHeadphonesForIosDevices: true,
     connectionDelay: {
       android: 3000,
